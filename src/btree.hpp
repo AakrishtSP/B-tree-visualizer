@@ -61,6 +61,7 @@ public:
         enum Operation {
             None,
             InsertKey,
+            DeleteKey,
             SplitNode,
             MergeNode,
             BalanceTree

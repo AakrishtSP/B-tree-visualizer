@@ -403,16 +403,18 @@ void BTree::eraseAnimated(int k) {
     highlightAnim.completed = false;
     addAnimationStep(highlightAnim);
     
-    // Step 2: Fade out animation (the key shrinking/fading)
-    AnimationStep fadeAnim;
-    fadeAnim.type = AnimationType::KeyMoving; // Reuse for fade effect
-    fadeAnim.duration = 0.6f;
-    fadeAnim.movingKey = k;
-    fadeAnim.operation = AnimationStep::None;
-    fadeAnim.completed = false;
-    fadeAnim.targetNode = node;
-    fadeAnim.targetIndex = idx;
-    addAnimationStep(fadeAnim);
+    // Step 2: Move key out animation (key flying away and fading)
+    AnimationStep moveOutAnim;
+    moveOutAnim.type = AnimationType::KeyMoving;
+    moveOutAnim.duration = 0.8f;
+    moveOutAnim.movingKey = k;
+    moveOutAnim.operation = AnimationStep::DeleteKey; // Mark as deletion
+    moveOutAnim.completed = false;
+    moveOutAnim.targetNode = node;
+    moveOutAnim.targetIndex = idx;
+    // Start and end positions will be set in main.cpp based on current node position
+    moveOutAnim.needsRecalculation = true;
+    addAnimationStep(moveOutAnim);
     
     // Step 3: Actually perform the deletion after animation
     AnimationStep deleteAnim;

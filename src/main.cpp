@@ -16,9 +16,9 @@ float easeInOutCubic(float t) {
 }
 
 int main() {
-	const int screenWidth = 1200;
-	const int screenHeight = 800;
-	InitWindow(screenWidth, screenHeight, "B-Tree Visualizer (Animated)");
+	const int screenWidth = 1400;
+	const int screenHeight = 900;
+	InitWindow(screenWidth, screenHeight, "B-Tree Visualizer");
 	SetTargetFPS(60);
 
 	// Initialize random number generator with a proper seed
@@ -68,9 +68,27 @@ int main() {
 	};
 
 	
-	// Load embedded font
-	Font uiFont = LoadFontFromMemory(".ttf", embedded_font_data, embedded_font_data_size, 20, 0, 0);
+	// Load embedded fonts with higher resolution for better quality
+	Font titleFont = LoadFontFromMemory(".ttf", embedded_font_data, embedded_font_data_size, 56, 0, 0);
+	SetTextureFilter(titleFont.texture, TEXTURE_FILTER_BILINEAR);
+	Font uiFont = LoadFontFromMemory(".ttf", embedded_font_data, embedded_font_data_size, 36, 0, 0);
+	SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+	Font keyFont = LoadFontFromMemory(".ttf", embedded_font_data, embedded_font_data_size, 40, 0, 0);
+	SetTextureFilter(keyFont.texture, TEXTURE_FILTER_BILINEAR);
 	bool uiFontLoaded = true;
+
+	// Fit to screen at start
+	{
+		std::vector<float> xs, ys;
+		int cursor = 0;
+		int yStart = 50, levelHeight = 80, xSpacing = 40;
+		tree.traverse([&](BTree::Node* node, int depth, int index){ 
+			xs.push_back(cursor * xSpacing + 100); 
+			ys.push_back(yStart + depth * levelHeight); 
+			cursor += 2; 
+		});
+		fitView(xs, ys);
+	}
 
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
@@ -231,7 +249,10 @@ int main() {
 
 		
 		BeginDrawing();
-		ClearBackground(RAYWHITE);
+		// Modern gradient background
+		ClearBackground((Color){245, 247, 250, 255});
+		DrawRectangleGradientV(0, 0, screenWidth, screenHeight/3, 
+			(Color){240, 242, 245, 255}, (Color){245, 247, 250, 255});
 
 	Camera2D camera;
 	camera.offset = {0.0f, 0.0f};
@@ -339,45 +360,71 @@ int main() {
 			}
 			
 			if (isSplitting) {
-				// Draw splitting animation - show keys redistributing
-				DrawRectangleRec(nodeRect, Fade(YELLOW, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
-				DrawRectangleLinesEx(nodeRect, 3, Fade(ORANGE, 0.8f));
+				// Draw splitting animation with modern styling
+				Color splitBg = (Color){255, 200, 100, 255};
+				Color splitBorder = (Color){255, 140, 0, 255};
 				
-				// Draw text to explain the split
+				// Rounded rectangle with shadow
+				DrawRectangleRounded((Rectangle){nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
+					0.25f, 8, Fade(BLACK, 0.15f));
+				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(splitBg, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
+				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 3, Fade(splitBorder, 0.9f));
+				
+				// Draw text to explain the split with background badge
 				const char* splitText = "SPLITTING NODE...";
-				Vector2 textSize = MeasureTextEx(uiFont, splitText, 14, 1);
-				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 25 };
-				DrawTextEx(uiFont, splitText, textPos, 14, 1, ORANGE);
+				Vector2 textSize = MeasureTextEx(uiFont, splitText, 13, 1);
+				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 30 };
+				Rectangle badgeRect = {textPos.x - 8, textPos.y - 4, textSize.x + 16, textSize.y + 8};
+				DrawRectangleRounded(badgeRect, 0.3f, 6, splitBorder);
+				DrawTextEx(uiFont, splitText, textPos, 13, 1, WHITE);
 			} else if (isViolation) {
-				// Draw violation - node has too many keys
+				// Draw violation with modern styling
 				float pulse = 0.5f + 0.5f * sin(GetTime() * 10.0f);
-				DrawRectangleRec(nodeRect, Fade(violationColor, 0.3f * pulse));
-				DrawRectangleLinesEx(nodeRect, 4, Fade(violationColor, 0.9f));
+				Color violationBg = (Color){255, 80, 80, 255};
 				
-				// Draw text to explain the violation
+				// Rounded rectangle with shadow
+				DrawRectangleRounded((Rectangle){nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
+					0.25f, 8, Fade(BLACK, 0.15f));
+				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(violationBg, 0.2f * pulse));
+				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 4, Fade(violationColor, 0.9f));
+				
+				// Draw text to explain the violation with background badge
 				const char* violationText = "TOO MANY KEYS!";
-				Vector2 textSize = MeasureTextEx(uiFont, violationText, 14, 1);
-				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 25 };
-				DrawTextEx(uiFont, violationText, textPos, 14, 1, violationColor);
+				Vector2 textSize = MeasureTextEx(uiFont, violationText, 13, 1);
+				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 30 };
+				Rectangle badgeRect = {textPos.x - 8, textPos.y - 4, textSize.x + 16, textSize.y + 8};
+				DrawRectangleRounded(badgeRect, 0.3f, 6, violationColor);
+				DrawTextEx(uiFont, violationText, textPos, 13, 1, WHITE);
 			} else {
-				DrawRectangleRec(nodeRect, Fade(LIGHTGRAY, 0.95f));
-				DrawRectangleLinesEx(nodeRect, 2, DARKGRAY);
+				// Normal node with modern styling - rounded corners and shadow
+				Color nodeBg = (Color){255, 255, 255, 255};
+				Color nodeBorder = (Color){100, 120, 150, 255};
+				
+				// Shadow
+				DrawRectangleRounded((Rectangle){nodeRect.x + 2, nodeRect.y + 2, nodeRect.width, nodeRect.height}, 
+					0.25f, 8, Fade(BLACK, 0.12f));
+				// Node background
+				DrawRectangleRounded(nodeRect, 0.25f, 8, nodeBg);
+				// Border
+				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 2.5f, nodeBorder);
 			}
 
 			
+			// Draw cell dividers with modern subtle style
 			for (float px : keyXs) {
-				DrawLineEx({px, L.cy - nodeH/2.0f}, {px, L.cy + nodeH/2.0f}, 2, DARKGRAY);
+				DrawLineEx({px, L.cy - nodeH/2.0f + 4}, {px, L.cy + nodeH/2.0f - 4}, 1.5f, 
+					Fade((Color){180, 190, 200, 255}, 0.5f));
 			}
 
 			
-			int fontSize = 16;
+			int fontSize = 20;
 			for (size_t i = 0; i < vec.size(); ++i) {
 				float leftCell = keyXs[i];
 				float rightCell = keyXs[i+1];
 				float tx = (leftCell + rightCell) * 0.5f;
 				std::stringstream ss; ss << vec[i].value;
 				std::string s = ss.str();
-				Vector2 textSize = MeasureTextEx(uiFont, s.c_str(), fontSize, 1);
+				Vector2 textSize = MeasureTextEx(keyFont, s.c_str(), fontSize, 1);
 				Vector2 pos = { tx - textSize.x/2.0f, L.cy - textSize.y/2.0f };
 				
 				// Store key position for animation system
@@ -408,33 +455,45 @@ int main() {
 				}
 				
 				if (isFadingOut) {
-					// Draw fading out key (shrinking and fading)
+					// Draw fading out key with modern effect
 					float alpha = 1.0f - fadeProgress;
 					float scale = 1.0f - fadeProgress * 0.5f;
 					int fadeFontSize = (int)(fontSize * scale);
-					DrawTextEx(uiFont, s.c_str(), pos, fadeFontSize, 1, Fade(RED, alpha));
-					Rectangle keyRect = { tx - 18 * scale, L.cy - 18 * scale, 36 * scale, 36 * scale };
-					DrawRectangleLinesEx(keyRect, 3, Fade(RED, alpha));
+					Color fadeColor = (Color){255, 80, 80, (unsigned char)(255 * alpha)};
+					DrawTextEx(keyFont, s.c_str(), pos, fadeFontSize, 1, fadeColor);
+					
+					float circleRadius = 22.0f * scale;
+					DrawCircleV({tx, L.cy}, circleRadius + 2, Fade(fadeColor, alpha * 0.3f));
+					DrawCircleLinesV({tx, L.cy}, circleRadius, Fade(fadeColor, alpha * 0.9f));
 				} else if (isHighlighted) {
-					DrawTextEx(uiFont, s.c_str(), pos, fontSize, 1, highlightColor);
-					Rectangle keyRect = { tx - 18, L.cy - 18, 36, 36 };
-					DrawRectangleLinesEx(keyRect, 3, highlightColor);
+					// Highlighted key with glow effect
+					Color glowColor = highlightColor;
+					DrawCircleV({tx, L.cy}, 26, Fade(glowColor, 0.2f));
+					DrawCircleV({tx, L.cy}, 22, Fade(glowColor, 0.4f));
+					DrawTextEx(keyFont, s.c_str(), pos, fontSize, 1, glowColor);
+					DrawCircleLinesV({tx, L.cy}, 22, glowColor);
 				} else {
-					DrawTextEx(uiFont, s.c_str(), pos, fontSize, 1, BLACK);
+					// Normal key with better styling
+					DrawTextEx(keyFont, s.c_str(), pos, fontSize, 1, (Color){40, 50, 65, 255});
 				}
 				
-				Rectangle keyRect = { tx - 18, L.cy - 18, 36, 36 };
+				// Hover effect with modern circle
+				Rectangle keyRect = { tx - 22, L.cy - 22, 44, 44 };
 				if (CheckCollisionPointRec(ctx.mouseWorld, keyRect)) {
-					DrawRectangleLinesEx(keyRect, 2, GOLD);
+					Color hoverColor = (Color){255, 180, 0, 255};
+					DrawCircleV({tx, L.cy}, 24, Fade(hoverColor, 0.15f));
+					DrawCircleLinesV({tx, L.cy}, 24, hoverColor);
 					ctx.hoveredKey = vec[i].value;
 				}
 			}
 			
+			// Draw child pointers with modern styling
 			auto &ptrs = nodePointerXs[node];
 			float pointerH = 8.0f;
 			for (float px : ptrs) {
-				Rectangle pr = { px - 6, L.cy + nodeH/2.0f + 6, 12, pointerH };
-				DrawRectangleRec(pr, Fade(DARKGRAY, 0.8f));
+				float py = L.cy + 18.0f;
+				DrawCircle(px, py, 4, (Color){100, 120, 150, 255});
+				DrawCircle(px, py, 2, (Color){180, 190, 200, 255});
 			}
 		}
 
@@ -459,47 +518,71 @@ int main() {
 			}
 		}
 		
-		// Draw animated keys moving
+		// Draw animated keys moving with enhanced visuals
 		for (const auto& anim : tree.getCurrentAnimations()) {
 			if (anim.type == BTree::AnimationType::KeyMoving) {
 				float t = easeInOutCubic(anim.progress);
 				
-				// Calculate actual target position based on endPos (already set to correct world coords)
-				Vector2 targetPos = anim.endPos;
+				// Check if this is a deletion animation
+				bool isDeletion = (anim.operation == BTree::AnimationStep::DeleteKey);
 				
-				// Convert screen start position to world coordinates
-				Vector2 startWorld = GetScreenToWorld2D(anim.startPos, camera);
+				Vector2 startWorld, targetPos, currentPos;
 				
-				// Interpolate position
-				Vector2 currentPos;
-				currentPos.x = startWorld.x + (targetPos.x - startWorld.x) * t;
-				currentPos.y = startWorld.y + (targetPos.y - startWorld.y) * t;
+				if (isDeletion) {
+					// For deletion: get current position from node and move UP and fade out
+					if (anim.targetNode && tree.nodeKeyPositions.find(anim.targetNode) != tree.nodeKeyPositions.end() &&
+					    anim.targetIndex < (int)tree.nodeKeyPositions[anim.targetNode].size()) {
+						startWorld = tree.nodeKeyPositions[anim.targetNode][anim.targetIndex];
+						// Move key upward and slightly to the side
+						targetPos = {startWorld.x + 50.0f, startWorld.y - 200.0f};
+					} else {
+						continue; // Skip if we can't find the position
+					}
+					currentPos.x = startWorld.x + (targetPos.x - startWorld.x) * t;
+					currentPos.y = startWorld.y + (targetPos.y - startWorld.y) * t;
+				} else {
+					// For insertion: normal behavior
+					targetPos = anim.endPos;
+					startWorld = GetScreenToWorld2D(anim.startPos, camera);
+					currentPos.x = startWorld.x + (targetPos.x - startWorld.x) * t;
+					currentPos.y = startWorld.y + (targetPos.y - startWorld.y) * t;
+				}
 				
-				// Draw the moving key
-				float scale = 1.0f + 0.3f * sin(anim.progress * 3.14159f);
-				int fontSize = (int)(20 * scale);
+				// Draw the moving key with modern styling
+				float alpha = isDeletion ? (1.0f - t) : 1.0f; // Fade out for deletion
+				float scale = isDeletion ? (1.0f - t * 0.3f) : (1.0f + 0.2f * sin(anim.progress * 3.14159f));
+				int fontSize = (int)(24 * scale);
 				std::stringstream ss; ss << anim.movingKey;
 				std::string s = ss.str();
-				Vector2 textSize = MeasureTextEx(uiFont, s.c_str(), fontSize, 1);
+				Vector2 textSize = MeasureTextEx(keyFont, s.c_str(), fontSize, 1);
 				
-				// Draw a glowing circle behind the key
-				float radius = 24.0f * scale;
-				DrawCircleV(currentPos, radius + 4, Fade(SKYBLUE, 0.3f));
-				DrawCircleV(currentPos, radius, Fade(GOLD, 0.9f));
-				DrawCircleLinesV(currentPos, radius, ORANGE);
+				// Draw glowing effect with multiple circles
+				float radius = 28.0f * scale;
+				Color glowColor1 = isDeletion ? (Color){255, 80, 80, 255} : (Color){100, 180, 255, 255};
+				Color glowColor2 = isDeletion ? (Color){255, 120, 120, 255} : (Color){255, 200, 80, 255};
+				
+				DrawCircleV(currentPos, radius + 12, Fade(glowColor1, 0.15f * alpha));
+				DrawCircleV(currentPos, radius + 6, Fade(glowColor1, 0.25f * alpha));
+				DrawCircleV(currentPos, radius + 3, Fade(glowColor2, 0.4f * alpha));
+				DrawCircleV(currentPos, radius, Fade(WHITE, alpha));
+				DrawCircleLinesV(currentPos, radius, Fade(glowColor2, alpha));
+				DrawCircleLinesV(currentPos, radius - 2, Fade(glowColor2, 0.5f * alpha));
 				
 				// Draw the key value
 				Vector2 textPos = { currentPos.x - textSize.x/2.0f, currentPos.y - textSize.y/2.0f };
-				DrawTextEx(uiFont, s.c_str(), textPos, fontSize, 1, BLACK);
+				DrawTextEx(keyFont, s.c_str(), textPos, fontSize, 1, Fade((Color){40, 50, 65, 255}, alpha));
 				
-				// Draw trail effect
-				for (int i = 1; i <= 3; ++i) {
-					float trailT = std::max(0.0f, t - i * 0.1f);
-					Vector2 trailPos;
-					trailPos.x = startWorld.x + (targetPos.x - startWorld.x) * trailT;
-					trailPos.y = startWorld.y + (targetPos.y - startWorld.y) * trailT;
-					float trailAlpha = 0.3f * (1.0f - i * 0.3f);
-					DrawCircleV(trailPos, radius * 0.6f, Fade(GOLD, trailAlpha));
+				// Draw enhanced trail effect (only for insertion)
+				if (!isDeletion) {
+					for (int i = 1; i <= 5; ++i) {
+						float trailT = std::max(0.0f, t - i * 0.08f);
+						Vector2 trailPos;
+						trailPos.x = startWorld.x + (targetPos.x - startWorld.x) * trailT;
+						trailPos.y = startWorld.y + (targetPos.y - startWorld.y) * trailT;
+						float trailAlpha = 0.4f * (1.0f - i * 0.18f);
+						float trailScale = 1.0f - i * 0.12f;
+						DrawCircleV(trailPos, radius * trailScale * 0.7f, Fade(glowColor2, trailAlpha));
+					}
 				}
 			}
 		}
@@ -508,60 +591,159 @@ int main() {
 	
 	hoveredKey = ctx.hoveredKey;
 
+	// Modern title bar
+	Rectangle titleBar = {0, 0, (float)screenWidth, 60};
+	DrawRectangleGradientV(0, 0, screenWidth, 60, 
+		(Color){55, 65, 81, 255}, (Color){75, 85, 99, 255});
+	
+	const char* title = "B-Tree Visualizer";
+	Vector2 titleSize = MeasureTextEx(titleFont, title, 28, 1);
+	DrawTextEx(titleFont, title, {20, 16}, 28, 1, WHITE);
+	
+	// Subtitle
+	const char* subtitle = "Interactive Animation & Exploration";
+	DrawTextEx(uiFont, subtitle, {22, 44}, 14, 1, Fade(WHITE, 0.7f));
+
 	
 	int hudFontSize = 16;
 	std::vector<std::string> legend = {
-		"A: add random",
-		"M: add multiple (type count + Enter)",
-		"I: insert typed",
-		"D: delete last",
-		"H: delete hovered",
-		"X: clear all",
-		"Drag: pan",
-		"Wheel or +/-: zoom",
-		"R: reset sample",
+		"A  Add random key",
+		"M  Add multiple keys",
+		"I  Insert typed value",
+		"D  Delete last added",
+		"H  Delete hovered key",
+		"X  Clear all keys",
+		"Z  Zoom to fit",
+		"R  Reset with samples",
+		"",
+		"Drag  Pan view",
+		"Wheel  Zoom",
 	};
 	
-	float padding = 12.0f;
-	float lineSpacing = 6.0f;
+	float padding = 16.0f;
+	float lineSpacing = 8.0f;
 	float maxW = 0;
-	for (auto &s : legend) maxW = std::max(maxW, MeasureTextEx(uiFont, s.c_str(), hudFontSize, 1).x);
-	float boxW = maxW + padding*2 + 20; 
+	for (auto &s : legend) {
+		if (!s.empty()) {
+			maxW = std::max(maxW, MeasureTextEx(uiFont, s.c_str(), hudFontSize, 1).x);
+		}
+	}
+	float boxW = maxW + padding*2 + 40; // Extra padding to prevent overflow
 	float lineH = MeasureTextEx(uiFont, "Tg", hudFontSize, 1).y;
-	float boxH = (lineH + lineSpacing) * legend.size() + padding*2 - lineSpacing;
-	float bx = screenWidth - boxW - 16.0f;
-	float by = screenHeight - boxH - 16.0f;
+	// Count non-empty lines for proper height calculation
+	int nonEmptyLines = 0;
+	for (auto &s : legend) {
+		if (!s.empty()) nonEmptyLines++;
+	}
+	float boxH = (lineH + lineSpacing) * nonEmptyLines + padding*2 + 36; // +36 for title and separator
+	float bx = screenWidth - boxW - 20.0f;
+	float by = 80.0f;
 
 	
 	Rectangle legendRect = { bx, by, boxW, boxH };
-	DrawRectangleRounded(legendRect, 0.12f, 6, Fade(RAYWHITE, 0.95f));
-	DrawRectangleRoundedLines(legendRect, 0.12f, 6, 2, DARKGRAY);
+	// Shadow
+	DrawRectangleRounded((Rectangle){bx + 3, by + 3, boxW, boxH}, 0.15f, 8, Fade(BLACK, 0.2f));
+	// Background
+	DrawRectangleRounded(legendRect, 0.15f, 8, Fade((Color){255, 255, 255, 255}, 0.96f));
+	DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, (Color){200, 210, 220, 255});
+
+	// Legend title
+	const char* legendTitle = "Controls";
+	Vector2 legendTitleSize = MeasureTextEx(uiFont, legendTitle, 18, 1);
+	DrawTextEx(uiFont, legendTitle, {bx + padding, by + padding - 2}, 18, 1, (Color){55, 65, 81, 255});
+	
+	// Separator line
+	DrawLineEx({bx + padding, by + padding + 22}, 
+		{bx + boxW - padding, by + padding + 22}, 2, Fade((Color){200, 210, 220, 255}, 0.5f));
 
 	
 	for (size_t i = 0; i < legend.size(); ++i) {
-		float tx = bx + padding + 18;
-		float ty = by + padding + i * (lineH + lineSpacing);
+		if (legend[i].empty()) continue; // Skip empty lines
 		
-		Rectangle icon = { bx + padding, ty + (lineH - 12)/2.0f, 12, 12 };
-		DrawRectangleRec(icon, Fade(DARKGRAY, 0.9f));
+		float tx = bx + padding + 28;
+		float ty = by + padding + 32 + i * (lineH + lineSpacing);
 		
-		DrawTextEx(uiFont, legend[i].c_str(), {tx, ty}, hudFontSize, 1, DARKGRAY);
+		// Check if this is a keyboard shortcut (starts with single letter)
+		bool isKeyShortcut = legend[i].length() > 2 && legend[i][1] == ' ';
+		
+		if (isKeyShortcut) {
+			// Draw key icon
+			char keyChar[2] = {legend[i][0], '\0'};
+			Rectangle keyIcon = { bx + padding, ty - 2, 20, 20 };
+			DrawRectangleRounded(keyIcon, 0.25f, 4, (Color){100, 180, 255, 255});
+			DrawRectangleRoundedLines(keyIcon, 0.25f, 4, 1.5f, (Color){70, 140, 220, 255});
+			
+			Vector2 keyTextSize = MeasureTextEx(uiFont, keyChar, 14, 1);
+			DrawTextEx(uiFont, keyChar, 
+				{keyIcon.x + 10 - keyTextSize.x/2, keyIcon.y + 10 - keyTextSize.y/2}, 
+				14, 1, WHITE);
+			
+			// Draw description
+			const char* desc = legend[i].c_str() + 2;
+			DrawTextEx(uiFont, desc, {tx, ty}, hudFontSize, 1, (Color){75, 85, 99, 255});
+		} else {
+			// Draw mouse action icon
+			DrawCircle(bx + padding + 8, ty + 8, 6, (Color){150, 160, 170, 255});
+			DrawCircle(bx + padding + 8, ty + 8, 4, (Color){200, 210, 220, 255});
+			
+			DrawTextEx(uiFont, legend[i].c_str(), {tx, ty}, hudFontSize, 1, (Color){75, 85, 99, 255});
+		}
 	}
 
 	if (typing) {
-		std::string t = "Typing: "+typed+" (Enter to commit, Esc to cancel)";
-		DrawTextEx(uiFont, t.c_str(), {bx + padding, by - 24}, hudFontSize, 1, RED);
+		std::string promptText = typingMode == TypingMode::Multi ? 
+			"Enter number of keys to add: " : "Enter value to insert: ";
+		std::string fullText = promptText + typed + "_";
+		
+		// Modern input box
+		Vector2 textSize = MeasureTextEx(uiFont, fullText.c_str(), 18, 1);
+		float inputBoxW = std::max(300.0f, textSize.x + 40);
+		float inputBoxH = 60;
+		float inputX = (screenWidth - inputBoxW) / 2;
+		float inputY = screenHeight - 100;
+		
+		Rectangle inputBox = {inputX, inputY, inputBoxW, inputBoxH};
+		// Shadow
+		DrawRectangleRounded((Rectangle){inputX + 3, inputY + 3, inputBoxW, inputBoxH}, 
+			0.2f, 8, Fade(BLACK, 0.25f));
+		// Background
+		DrawRectangleRounded(inputBox, 0.2f, 8, (Color){255, 255, 255, 255});
+		DrawRectangleRoundedLines(inputBox, 0.2f, 8, 3, (Color){100, 180, 255, 255});
+		
+		DrawTextEx(uiFont, fullText.c_str(), 
+			{inputX + 20, inputY + (inputBoxH - textSize.y)/2}, 18, 1, (Color){40, 50, 65, 255});
+		
+		// Help text
+		const char* helpText = "Enter to submit • Esc to cancel";
+		Vector2 helpSize = MeasureTextEx(uiFont, helpText, 13, 1);
+		DrawTextEx(uiFont, helpText, 
+			{inputX + (inputBoxW - helpSize.x)/2, inputY - 20}, 13, 1, (Color){120, 130, 140, 255});
 	}
 	
-	// Show animation status
+	// Show animation status with modern badge
 	if (tree.isAnimating()) {
 		std::string animText = "Animating...";
-		Vector2 animTextSize = MeasureTextEx(uiFont, animText.c_str(), hudFontSize, 1);
+		Vector2 animTextSize = MeasureTextEx(uiFont, animText.c_str(), 16, 1);
 		float animX = 20.0f;
-		float animY = 20.0f;
-		Rectangle animBox = {animX - 8, animY - 4, animTextSize.x + 16, animTextSize.y + 8};
-		DrawRectangleRounded(animBox, 0.2f, 6, Fade(ORANGE, 0.8f));
-		DrawTextEx(uiFont, animText.c_str(), {animX, animY}, hudFontSize, 1, WHITE);
+		float animY = 80.0f;
+		Rectangle animBox = {animX, animY, animTextSize.x + 24, animTextSize.y + 16};
+		
+		// Pulsing effect
+		float pulse = 0.8f + 0.2f * sin(GetTime() * 4.0f);
+		
+		// Shadow
+		DrawRectangleRounded((Rectangle){animX + 2, animY + 2, animBox.width, animBox.height}, 
+			0.3f, 8, Fade(BLACK, 0.2f));
+		// Background with pulse
+		DrawRectangleRounded(animBox, 0.3f, 8, Fade((Color){255, 160, 50, 255}, pulse));
+		DrawRectangleRoundedLines(animBox, 0.3f, 8, 2, (Color){255, 140, 0, 255});
+		
+		// Animated dots
+		int dotCount = ((int)(GetTime() * 3) % 4);
+		std::string dotsText = animText.substr(0, 10);
+		for (int i = 0; i < dotCount; i++) dotsText += ".";
+		
+		DrawTextEx(uiFont, dotsText.c_str(), {animX + 12, animY + 8}, 16, 1, WHITE);
 	}
 
 		EndDrawing();
