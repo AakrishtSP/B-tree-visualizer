@@ -4,10 +4,10 @@ name: CMake Build and Release
 
 on:
   push:
-    branches: "*"
+    branches: [ "main" ]
 
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 permissions:
   contents: write
@@ -77,8 +77,13 @@ jobs:
 
 
     - name: Configure CMake
+      shell: bash
       run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cmake -B build -S ${{ github.workspace }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        else
           cmake -B build -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
+        fi
 
 
     - name: Build
@@ -122,7 +127,8 @@ jobs:
         set -e
         ART_PATH=""
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Select-Object -First 1).FullName")
+          # Prefer executables produced in Release folders by Visual Studio generator
+          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Where-Object { $_.DirectoryName -match 'Release$' } | Select-Object -First 1).FullName")
           OS_LABEL=win
           EXT=".exe"
         else
