@@ -6,9 +6,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 set(RAYLIB_VERSION 5.5)
+
+# Enable FetchContent caching
+set(FETCHCONTENT_QUIET FALSE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+
 FetchContent_Declare(
     raylib
     URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
+    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/raylib-src
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/raylib-build
 )
 
 # Set platform for Raylib

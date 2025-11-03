@@ -98,6 +98,8 @@ public:
     void updateAnimation(float deltaTime);
     bool isAnimating() const { return !animationQueue.empty() || !currentAnimations.empty(); }
     const std::vector<AnimationStep>& getCurrentAnimations() const { return currentAnimations; }
+    bool hasAnimationJustCompleted() const { return animationJustCompleted; }
+    void clearAnimationCompletedFlag() { animationJustCompleted = false; }
     
     // Method to provide layout information from main.cpp
     void setKeyPosition(Node* node, int keyIndex, Vector2 position);
@@ -118,6 +120,7 @@ private:
     // Animation state
     std::queue<AnimationStep> animationQueue;
     std::vector<AnimationStep> currentAnimations;
+    bool animationJustCompleted = false;
     
     void addAnimationStep(const AnimationStep& step);
     void processNextAnimation();

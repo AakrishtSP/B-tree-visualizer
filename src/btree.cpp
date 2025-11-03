@@ -183,6 +183,9 @@ Vector2 BTree::getKeyTargetPosition(int key) {
 }
 
 void BTree::updateAnimation(float deltaTime) {
+    // Reset the flag at the start of each update
+    animationJustCompleted = false;
+    
     // Update current animations
     for (auto& anim : currentAnimations) {
         anim.progress += deltaTime / anim.duration;
@@ -215,11 +218,17 @@ void BTree::updateAnimation(float deltaTime) {
     }
     
     // Remove completed animations
+    size_t sizeBefore = currentAnimations.size();
     currentAnimations.erase(
         std::remove_if(currentAnimations.begin(), currentAnimations.end(),
             [](const AnimationStep& a) { return a.progress >= 1.0f && a.completed; }),
         currentAnimations.end()
     );
+    
+    // Set flag if any animation just completed
+    if (sizeBefore > currentAnimations.size()) {
+        animationJustCompleted = true;
+    }
     
     // Start next animation if current is empty
     if (currentAnimations.empty() && !animationQueue.empty()) {

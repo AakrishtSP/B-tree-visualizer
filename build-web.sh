@@ -19,16 +19,45 @@ fi
 
 echo "✓ Emscripten found: $(emcc --version | head -n1)"
 
-# Create build directory
-BUILD_DIR="build-web"
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
 
-# Configure with Emscripten
-echo "⚙️  Configuring with Emscripten..."
-emcmake cmake -S . -B "$BUILD_DIR" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DPLATFORM=Web
+BUILD_DIR="build-web"
+# Check for --clean flag
+if [ "$1" == "--clean" ]; then
+    echo "🧹 Clean build requested..."
+    rm -rf "$BUILD_DIR"
+    echo "✓ Removed build directory"
+fi
+
+# Setup build directory (keep for caching)
+if [ ! -d "$BUILD_DIR" ]; then
+    mkdir -p "$BUILD_DIR"
+    echo "📁 Created build directory"
+else
+    echo "♻️  Using existing build directory for faster incremental builds"
+fi
+
+# Enable Emscripten cache
+export EM_CACHE="${HOME}/.emscripten_cache"
+mkdir -p "$EM_CACHE"
+echo "💾 Emscripten cache: $EM_CACHE"
+
+# Check if ccache is available
+CMAKE_EXTRA_FLAGS=""
+if command -v ccache &> /dev/null; then
+    CMAKE_EXTRA_FLAGS="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    echo "✓ ccache found, using it for faster builds"
+fi
+
+# Configure with Emscripten (only if needed)
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+    echo "⚙️  Configuring with Emscripten..."
+    emcmake cmake -S . -B "$BUILD_DIR" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DPLATFORM=Web \
+        $CMAKE_EXTRA_FLAGS
+else
+    echo "⚙️  Configuration exists, skipping..."
+fi
 
 # Build
 echo "🔨 Building..."

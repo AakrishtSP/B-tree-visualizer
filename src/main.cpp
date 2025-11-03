@@ -48,12 +48,21 @@ int main() {
 	int hoveredKey = -1;
 	bool shouldFitViewAfterAnimation = false;
 	
+	// Camera animation state
+	bool cameraAnimating = false;
+	float cameraAnimProgress = 0.0f;
+	float cameraAnimDuration = 0.6f; // Animation duration in seconds
+	Vector2 cameraStartPan = {0, 0};
+	Vector2 cameraTargetPan = {0, 0};
+	float cameraStartZoom = 1.0f;
+	float cameraTargetZoom = 1.0f;
+	
 	enum class TypingMode { None, Insert, Multi };
 	TypingMode typingMode = TypingMode::None;
 	bool typing = false;
 	std::string typed = "";
 
-	auto fitView = [&](const std::vector<float>& xs, const std::vector<float>& ys){
+	auto fitView = [&](const std::vector<float>& xs, const std::vector<float>& ys, bool animate = true){
 		if (xs.empty() || ys.empty()) return;
 		float minx = *std::min_element(xs.begin(), xs.end());
 		float maxx = *std::max_element(xs.begin(), xs.end());
@@ -64,9 +73,36 @@ int main() {
 		float height = maxy - miny + margin*2;
 		float zx = (screenWidth) / width;
 		float zy = (screenHeight) / height;
-		zoom = std::min(std::max(std::min(zx, zy), 0.1f), 4.0f);
-		pan.x = -(minx + maxx)/2 + screenWidth/(2*zoom);
-		pan.y = -(miny + maxy)/2 + screenHeight/(2*zoom);
+		float targetZoom = std::min(std::max(std::min(zx, zy), 0.1f), 4.0f);
+		Vector2 targetPan;
+		targetPan.x = -(minx + maxx)/2 + screenWidth/(2*targetZoom);
+		targetPan.y = -(miny + maxy)/2 + screenHeight/(2*targetZoom);
+		
+		if (animate) {
+			// Start camera animation
+			cameraAnimating = true;
+			cameraAnimProgress = 0.0f;
+			cameraStartPan = pan;
+			cameraStartZoom = zoom;
+			cameraTargetPan = targetPan;
+			cameraTargetZoom = targetZoom;
+		} else {
+			// Instant update
+			zoom = targetZoom;
+			pan = targetPan;
+		}
+	};
+
+	auto fitViewToTree = [&](bool animate = true){
+		std::vector<float> xs, ys;
+		int cursor = 0;
+		int yStart = 50, levelHeight = 80, xSpacing = 40;
+		tree.traverse([&](BTree::Node* node, int depth, int index){ 
+			xs.push_back(cursor * xSpacing + 100); 
+			ys.push_back(yStart + depth * levelHeight); 
+			cursor += 2; 
+		});
+		fitView(xs, ys, animate);
 	};
 
 	
@@ -79,21 +115,29 @@ int main() {
 	SetTextureFilter(keyFont.texture, TEXTURE_FILTER_BILINEAR);
 	bool uiFontLoaded = true;
 
+
 	// Fit to screen at start
-	{
-		std::vector<float> xs, ys;
-		int cursor = 0;
-		int yStart = 50, levelHeight = 80, xSpacing = 40;
-		tree.traverse([&](BTree::Node* node, int depth, int index){ 
-			xs.push_back(cursor * xSpacing + 100); 
-			ys.push_back(yStart + depth * levelHeight); 
-			cursor += 2; 
-		});
-		fitView(xs, ys);
-	}
+	fitViewToTree();
 
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
+		
+		// Update camera animation
+		if (cameraAnimating) {
+			cameraAnimProgress += deltaTime / cameraAnimDuration;
+			if (cameraAnimProgress >= 1.0f) {
+				cameraAnimProgress = 1.0f;
+				cameraAnimating = false;
+			}
+			
+			// Apply easing
+			float t = easeInOutCubic(cameraAnimProgress);
+			
+			// Interpolate zoom and pan
+			zoom = cameraStartZoom + (cameraTargetZoom - cameraStartZoom) * t;
+			pan.x = cameraStartPan.x + (cameraTargetPan.x - cameraStartPan.x) * t;
+			pan.y = cameraStartPan.y + (cameraTargetPan.y - cameraStartPan.y) * t;
+		}
 		
 		// Update screen dimensions if window was resized
 		int newWidth = GetScreenWidth();
@@ -102,42 +146,29 @@ int main() {
 		screenWidth = newWidth;
 		screenHeight = newHeight;
 		
-		// Check if animations were running before update
-		bool wasAnimating = tree.isAnimating();
-		
 		// Update animations
 		tree.updateAnimation(deltaTime);
 		
-		// If animations just finished and we should fit view
-		if (wasAnimating && !tree.isAnimating() && shouldFitViewAfterAnimation) {
+		// Fit view after each animation step completes
+		if (tree.hasAnimationJustCompleted() && shouldFitViewAfterAnimation) {
+			fitViewToTree();
+			tree.clearAnimationCompletedFlag();
+		}
+		
+		// Clear the flag when all animations are done
+		if (!tree.isAnimating() && shouldFitViewAfterAnimation) {
 			shouldFitViewAfterAnimation = false;
-			std::vector<float> xs, ys;
-			int cursor = 0;
-			int yStart = 50, levelHeight = 80, xSpacing = 40;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ 
-				xs.push_back(cursor * xSpacing + 100); 
-				ys.push_back(yStart + depth * levelHeight); 
-				cursor += 2; 
-			});
-			fitView(xs, ys);
 		}
 		
 		// Auto-fit on window resize
 		if (windowResized && !tree.isAnimating()) {
-			std::vector<float> xs, ys;
-			int cursor = 0;
-			int yStart = 50, levelHeight = 80, xSpacing = 40;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ 
-				xs.push_back(cursor * xSpacing + 100); 
-				ys.push_back(yStart + depth * levelHeight); 
-				cursor += 2; 
-			});
-			fitView(xs, ys);
+			fitViewToTree();
 		}
 		
 		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 			dragging = true;
 			lastMouse = GetMousePosition();
+			cameraAnimating = false; // Stop camera animation when user starts dragging
 		}
 		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) dragging = false;
 		if (dragging) {
@@ -149,6 +180,7 @@ int main() {
 
 		float wheel = GetMouseWheelMove();
 		if (wheel != 0) {
+			cameraAnimating = false; // Stop camera animation when user zooms manually
 			float oldZoom = zoom;
 			zoom *= (1.0f + wheel * 0.1f);
 			if (zoom < 0.1f) zoom = 0.1f;
@@ -183,6 +215,7 @@ int main() {
 			if (tree.hasKeys()) {
 				int lastKey = tree.getLastInsertedKey();
 				tree.eraseAnimated(lastKey);
+				shouldFitViewAfterAnimation = true;
 			}
 		}
 		if (canInput && IsKeyPressed(KEY_X)) { 
@@ -192,18 +225,11 @@ int main() {
 		if (canInput && IsKeyPressed(KEY_H)) { 
 			if (hoveredKey != -1) {
 				tree.eraseAnimated(hoveredKey);
+				shouldFitViewAfterAnimation = true;
 			}
 		}
 		if (canInput && IsKeyPressed(KEY_Z)) { 
-			std::vector<float> xs, ys;
-			int cursor = 0;
-			int yStart = 50, levelHeight = 80, xSpacing = 40;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ 
-				xs.push_back(cursor * xSpacing + 100); 
-				ys.push_back(yStart + depth * levelHeight); 
-				cursor += 2; 
-			});
-			fitView(xs, ys);
+			fitViewToTree();
 		}
 		if (canInput && IsKeyPressed(KEY_R)) { 
 			tree.clearAll(); nextRandom = 100;
@@ -218,15 +244,7 @@ int main() {
 			}
 			
 			// Fit view immediately for reset (no animation)
-			std::vector<float> xs, ys; 
-			int cursor = 0;
-			int yStart = 50, levelHeight = 80, xSpacing = 40;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ 
-				xs.push_back(cursor * xSpacing + 100); 
-				ys.push_back(yStart + depth * levelHeight); 
-				cursor += 2; 
-			});
-			fitView(xs, ys);
+			fitViewToTree();
 		}
 
 		
@@ -258,6 +276,7 @@ int main() {
 									val = dist(rng);
 								}
 								tree.insertAnimated(val);
+								fitViewToTree();
 							}
 						}
 					} catch(...) {}
@@ -266,8 +285,14 @@ int main() {
 				shouldFitViewAfterAnimation = true;
 			}
 		}
-		if (IsKeyPressed(KEY_KP_ADD) || IsKeyPressed(KEY_EQUAL)) zoom = std::min(zoom * 1.1f, 4.0f);
-		if (IsKeyPressed(KEY_KP_SUBTRACT) || IsKeyPressed(KEY_MINUS)) zoom = std::max(zoom * 0.9f, 0.1f);
+		if (IsKeyPressed(KEY_KP_ADD) || IsKeyPressed(KEY_EQUAL)) {
+			cameraAnimating = false; // Stop camera animation
+			zoom = std::min(zoom * 1.1f, 4.0f);
+		}
+		if (IsKeyPressed(KEY_KP_SUBTRACT) || IsKeyPressed(KEY_MINUS)) {
+			cameraAnimating = false; // Stop camera animation
+			zoom = std::max(zoom * 0.9f, 0.1f);
+		}
 
 		
 	BeginDrawing();
