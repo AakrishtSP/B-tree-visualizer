@@ -96,8 +96,11 @@ int main() {
 		float deltaTime = GetFrameTime();
 		
 		// Update screen dimensions if window was resized
-		screenWidth = GetScreenWidth();
-		screenHeight = GetScreenHeight();
+		int newWidth = GetScreenWidth();
+		int newHeight = GetScreenHeight();
+		bool windowResized = (newWidth != screenWidth || newHeight != screenHeight);
+		screenWidth = newWidth;
+		screenHeight = newHeight;
 		
 		// Check if animations were running before update
 		bool wasAnimating = tree.isAnimating();
@@ -108,6 +111,19 @@ int main() {
 		// If animations just finished and we should fit view
 		if (wasAnimating && !tree.isAnimating() && shouldFitViewAfterAnimation) {
 			shouldFitViewAfterAnimation = false;
+			std::vector<float> xs, ys;
+			int cursor = 0;
+			int yStart = 50, levelHeight = 80, xSpacing = 40;
+			tree.traverse([&](BTree::Node* node, int depth, int index){ 
+				xs.push_back(cursor * xSpacing + 100); 
+				ys.push_back(yStart + depth * levelHeight); 
+				cursor += 2; 
+			});
+			fitView(xs, ys);
+		}
+		
+		// Auto-fit on window resize
+		if (windowResized && !tree.isAnimating()) {
 			std::vector<float> xs, ys;
 			int cursor = 0;
 			int yStart = 50, levelHeight = 80, xSpacing = 40;
