@@ -22,11 +22,24 @@ UI notes
 - Hover a key with the mouse to highlight it; the hover value is shown in the legend.
 - A legend is shown at the bottom-right with available controls and indicators.
 
-Preview
+## Preview
 
-![B-Tree visualizer preview](screenshots/SS1.png)
+### Latest Version (Build 13)
 
-Build (Linux/macOS)
+![B-Tree visualizer - Latest](screenshots/SS13.png)
+
+**Video Demo:**
+
+https://github.com/AakrishtSP/B-tree-visualizer/assets/screenshots/V13.mkv
+
+<details>
+<summary>📸 Old Version (Build 1) - Click to expand</summary>
+
+![B-Tree visualizer - Build 1](screenshots/SS1.png)
+
+</details>
+
+## Build (Linux/macOS)
 Run a single-line configure+build (recommended):
 
 ```fish
@@ -35,7 +48,7 @@ cmake -S . -B build && cmake --build build -- -j4
 
 This will download Raylib via CMake's FetchContent and build the executable into `build/bin`.
 
-Build (Windows - Visual Studio)
+## Build (Windows - Visual Studio)
 Open a "x64 Native Tools Command Prompt" (or use CMake GUI). Then:
 
 ```powershell
@@ -43,9 +56,9 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
 
-Prerequisites
+## Prerequisites
 - CMake (>= 3.24) installed and available on PATH. Install from https://cmake.org if needed.
 - A C/C++ toolchain: GCC/Clang on Linux/macOS or Visual Studio on Windows.
 
-Notes
+## Notes
 - The build uses FetchContent to download raylib automatically. If you are offline, pre-populate `build/_deps` or install raylib system-wide.
