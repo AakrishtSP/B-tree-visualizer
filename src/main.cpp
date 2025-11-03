@@ -16,8 +16,10 @@ float easeInOutCubic(float t) {
 }
 
 int main() {
-	const int screenWidth = 1400;
-	const int screenHeight = 900;
+	int screenWidth = 1400;
+	int screenHeight = 900;
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+	SetTraceLogLevel(LOG_NONE); // Disable all raylib logs
 	InitWindow(screenWidth, screenHeight, "B-Tree Visualizer");
 	SetTargetFPS(60);
 
@@ -92,6 +94,10 @@ int main() {
 
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
+		
+		// Update screen dimensions if window was resized
+		screenWidth = GetScreenWidth();
+		screenHeight = GetScreenHeight();
 		
 		// Check if animations were running before update
 		bool wasAnimating = tree.isAnimating();
