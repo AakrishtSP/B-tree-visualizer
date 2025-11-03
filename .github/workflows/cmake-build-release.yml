@@ -16,6 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    if: "!startsWith(github.event.head_commit.message, 'Readme:')"
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
