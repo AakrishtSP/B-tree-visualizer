@@ -21,13 +21,14 @@ jobs:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
 
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      # Set up a matrix to run the following 2 configurations:
+      # 1. <Windows, Release, MSVC (cl) on the default runner image>
+      # 2. <Linux, Release, GCC (gcc/g++) on the default runner image>
       #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      # This matrix is explicit to ensure exactly one Linux and one Windows job run.
       matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
         include:
           - os: windows-latest
             c_compiler: cl
@@ -37,7 +38,6 @@ jobs:
             c_compiler: gcc
             cpp_compiler: g++
             platform_short: linux
-        build_type: [Release]
 
     steps:
     - uses: actions/checkout@v4
@@ -104,9 +104,9 @@ jobs:
       shell: bash
       run: |
         if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "release=true" >> $GITHUB_OUTPUT
+          printf '%s\n' "release=true" >> "$GITHUB_OUTPUT"
         else
-          echo "release=false" >> $GITHUB_OUTPUT
+          printf '%s\n' "release=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Prepare release variables
@@ -115,9 +115,9 @@ jobs:
       shell: bash
       run: |
         REPO_NAME="$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
-        echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+        printf '%s\n' "REPO_NAME=$REPO_NAME" >> "$GITHUB_ENV"
         # Use run number (short) rather than long sha to keep artifact names short
-        echo "RUN_NUM=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+        printf '%s\n' "RUN_NUM=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
 
     - name: Locate built artifact
       if: steps.release_check.outputs.release == 'true'
@@ -145,8 +145,8 @@ jobs:
           echo "No artifact found." >&2
           exit 1
         fi
-        echo "ART_PATH=$ART_PATH" >> $GITHUB_ENV
-        echo "ART_NAME=$ART_NAME" >> $GITHUB_ENV
+        printf '%s\n' "ART_PATH=$ART_PATH" >> "$GITHUB_ENV"
+        printf '%s\n' "ART_NAME=$ART_NAME" >> "$GITHUB_ENV"
 
     - name: Create GitHub Release (using GITHUB_TOKEN)
       if: steps.release_check.outputs.release == 'true'
