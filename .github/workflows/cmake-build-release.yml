@@ -79,10 +79,11 @@ jobs:
     - name: Configure CMake
       shell: bash
       run: |
+        # Use relative source dir to avoid Windows path escaping issues in bash
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake -B build -S ${{ github.workspace }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         else
-          cmake -B build -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
+          cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         fi
 
 
@@ -166,8 +167,12 @@ jobs:
       shell: bash
       run: |
         mkdir -p build
-        cp "${ART_PATH}" "build/${ART_NAME}"
-        ls -lh build/${ART_NAME}
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          pwsh -NoLogo -NoProfile -Command "Copy-Item -LiteralPath \"$env:ART_PATH\" -Destination \"build/$env:ART_NAME\" -Force"
+        else
+          cp "${ART_PATH}" "build/${ART_NAME}"
+        fi
+        ls -lh build/${ART_NAME} || ls -lh build
 
     - name: Upload Release Asset
       if: steps.release_check.outputs.release == 'true' && steps.create_release.outcome == 'success'
