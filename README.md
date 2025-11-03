@@ -30,7 +30,7 @@ UI notes
 
 **Video Demo:**
 
-https://github.com/AakrishtSP/B-tree-visualizer/assets/screenshots/V13.mkv
+https://github.com/AakrishtSP/B-tree-visualizer/raw/refs/heads/main/screenshots/V13.mp4
 
 <details>
 <summary>📸 Old Version (Build 1) - Click to expand</summary>
