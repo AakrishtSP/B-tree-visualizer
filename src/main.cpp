@@ -6,17 +6,36 @@
 #include <algorithm>
 #include <unordered_map>
 #include <cfloat>
+#include <random>
 #include "btree.hpp"
+#include "embedded_font.h"
+
+// Helper function to ease animations
+float easeInOutCubic(float t) {
+    return t < 0.5f ? 4.0f * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
+}
 
 int main() {
 	const int screenWidth = 1200;
 	const int screenHeight = 800;
-	InitWindow(screenWidth, screenHeight, "B-Tree Visualizer");
+	InitWindow(screenWidth, screenHeight, "B-Tree Visualizer (Animated)");
 	SetTargetFPS(60);
+
+	// Initialize random number generator with a proper seed
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_int_distribution<int> dist(10, 99);
 
 	BTree tree(3);
 	
-	for (int i = 0; i < 8; ++i) tree.insert(10 + rand() % 90);
+	// Insert 8 unique random keys
+	for (int i = 0; i < 8; ++i) {
+		int val = dist(rng);
+		while (tree.contains(val)) {
+			val = dist(rng);
+		}
+		tree.insert(val);
+	}
 
 	Vector2 pan = {0, 0};
 	float zoom = 1.0f;
@@ -25,6 +44,7 @@ int main() {
 
 	int nextRandom = 100;
 	int hoveredKey = -1;
+	bool shouldFitViewAfterAnimation = false;
 	
 	enum class TypingMode { None, Insert, Multi };
 	TypingMode typingMode = TypingMode::None;
@@ -48,18 +68,32 @@ int main() {
 	};
 
 	
-	Font uiFont = GetFontDefault();
-	bool uiFontLoaded = false;
-	const char *fontPathCandidates[] = { "src/resources/JetBrainsMono-Regular.ttf", "resources/JetBrainsMono-Regular.ttf" };
-	for (auto &p : fontPathCandidates) {
-		if (FileExists(p)) {
-			uiFont = LoadFontEx(p, 20, 0, 0);
-			uiFontLoaded = true;
-			break;
-		}
-	}
+	// Load embedded font
+	Font uiFont = LoadFontFromMemory(".ttf", embedded_font_data, embedded_font_data_size, 20, 0, 0);
+	bool uiFontLoaded = true;
 
 	while (!WindowShouldClose()) {
+		float deltaTime = GetFrameTime();
+		
+		// Check if animations were running before update
+		bool wasAnimating = tree.isAnimating();
+		
+		// Update animations
+		tree.updateAnimation(deltaTime);
+		
+		// If animations just finished and we should fit view
+		if (wasAnimating && !tree.isAnimating() && shouldFitViewAfterAnimation) {
+			shouldFitViewAfterAnimation = false;
+			std::vector<float> xs, ys;
+			int cursor = 0;
+			int yStart = 50, levelHeight = 80, xSpacing = 40;
+			tree.traverse([&](BTree::Node* node, int depth, int index){ 
+				xs.push_back(cursor * xSpacing + 100); 
+				ys.push_back(yStart + depth * levelHeight); 
+				cursor += 2; 
+			});
+			fitView(xs, ys);
+		}
 		
 		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 			dragging = true;
@@ -86,45 +120,72 @@ int main() {
 		}
 
 		
-		if (IsKeyPressed(KEY_A)) { 
-			int val = nextRandom++;
-			tree.insert(val);
-			
-			std::vector<float> xs, ys;
-			int cursor = 0;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ xs.push_back(cursor*40+100); ys.push_back(depth*80+50); cursor+=2; });
-			fitView(xs, ys);
+		// Input handling - only allow when not animating
+		bool canInput = !tree.isAnimating();
+		
+		if (canInput && IsKeyPressed(KEY_A)) { 
+			int val = dist(rng);
+			// Ensure unique values
+			while (tree.contains(val)) {
+				val = dist(rng);
+			}
+			tree.insertAnimated(val);
+			shouldFitViewAfterAnimation = true;
 		}
-		if (IsKeyPressed(KEY_M)) { 
+		if (canInput && IsKeyPressed(KEY_M)) { 
 			typing = true; typed = ""; typingMode = TypingMode::Multi;
 		}
-		if (IsKeyPressed(KEY_I)) { 
+		if (canInput && IsKeyPressed(KEY_I)) { 
 			typing = true; typed = ""; typingMode = TypingMode::Insert;
 		}
-		if (IsKeyPressed(KEY_D)) { 
-			tree.erase(nextRandom - 1);
-			nextRandom = std::max(100, nextRandom - 1);
+		if (canInput && IsKeyPressed(KEY_D)) {
+			// Delete last added key
+			if (tree.hasKeys()) {
+				int lastKey = tree.getLastInsertedKey();
+				tree.eraseAnimated(lastKey);
+			}
 		}
-		if (IsKeyPressed(KEY_X)) { 
+		if (canInput && IsKeyPressed(KEY_X)) { 
 			tree.clearAll();
 			nextRandom = 100;
 		}
-		if (IsKeyPressed(KEY_H)) { 
-			if (hoveredKey != -1) tree.erase(hoveredKey);
+		if (canInput && IsKeyPressed(KEY_H)) { 
+			if (hoveredKey != -1) {
+				tree.eraseAnimated(hoveredKey);
+			}
 		}
-		if (IsKeyPressed(KEY_Z)) { 
+		if (canInput && IsKeyPressed(KEY_Z)) { 
 			std::vector<float> xs, ys;
 			int cursor = 0;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ xs.push_back(cursor*40+100); ys.push_back(depth*80+50); cursor+=2; });
+			int yStart = 50, levelHeight = 80, xSpacing = 40;
+			tree.traverse([&](BTree::Node* node, int depth, int index){ 
+				xs.push_back(cursor * xSpacing + 100); 
+				ys.push_back(yStart + depth * levelHeight); 
+				cursor += 2; 
+			});
 			fitView(xs, ys);
 		}
-		if (IsKeyPressed(KEY_R)) { 
+		if (canInput && IsKeyPressed(KEY_R)) { 
 			tree.clearAll(); nextRandom = 100;
 			
-			for (int i=0;i<8;i++) { tree.insert(10 + rand()%90); }
+			// Insert 8 unique random keys
+			for (int i = 0; i < 8; i++) { 
+				int val = dist(rng);
+				while (tree.contains(val)) {
+					val = dist(rng);
+				}
+				tree.insert(val);
+			}
 			
-			std::vector<float> xs, ys; int cursor=0;
-			tree.traverse([&](BTree::Node* node, int depth, int index){ xs.push_back(cursor*40+100); ys.push_back(depth*80+50); cursor+=2; });
+			// Fit view immediately for reset (no animation)
+			std::vector<float> xs, ys; 
+			int cursor = 0;
+			int yStart = 50, levelHeight = 80, xSpacing = 40;
+			tree.traverse([&](BTree::Node* node, int depth, int index){ 
+				xs.push_back(cursor * xSpacing + 100); 
+				ys.push_back(yStart + depth * levelHeight); 
+				cursor += 2; 
+			});
 			fitView(xs, ys);
 		}
 
@@ -145,18 +206,24 @@ int main() {
 					try {
 						int v = std::stoi(typed);
 						if (typingMode == TypingMode::Insert) {
-							tree.insert(v);
+							// Check for duplicates before inserting
+							if (!tree.contains(v)) {
+								tree.insertAnimated(v);
+							}
 						} else if (typingMode == TypingMode::Multi) {
 							int count = std::max(0, v);
-							for (int i=0;i<count;i++) { tree.insert(nextRandom++); }
+							for (int i = 0; i < count; i++) { 
+								int val = dist(rng);
+								while (tree.contains(val)) {
+									val = dist(rng);
+								}
+								tree.insertAnimated(val);
+							}
 						}
 					} catch(...) {}
 				}
 				typing = false; typed.clear(); typingMode = TypingMode::None;
-				
-				std::vector<float> xs, ys; int cursor=0;
-				tree.traverse([&](BTree::Node* node, int depth, int index){ xs.push_back(cursor*40+100); ys.push_back(depth*80+50); cursor+=2; });
-				fitView(xs, ys);
+				shouldFitViewAfterAnimation = true;
 			}
 		}
 		if (IsKeyPressed(KEY_KP_ADD) || IsKeyPressed(KEY_EQUAL)) zoom = std::min(zoom * 1.1f, 4.0f);
@@ -251,8 +318,51 @@ int main() {
 			float right = keyXs.back() + 18.0f;
 			float nodeH = 36.0f;
 			Rectangle nodeRect = { left, L.cy - nodeH/2.0f, right - left, nodeH };
-			DrawRectangleRec(nodeRect, Fade(LIGHTGRAY, 0.95f));
-			DrawRectangleLinesEx(nodeRect, 2, DARKGRAY);
+			
+			// Check if this node is being split or highlighted for violation
+			bool isSplitting = false;
+			bool isViolation = false;
+			Color violationColor = RED;
+			float splitProgress = 0.0f;
+			
+			for (const auto& anim : tree.getCurrentAnimations()) {
+				if (anim.type == BTree::AnimationType::NodeSplitting && anim.operationNode == node) {
+					isSplitting = true;
+					splitProgress = easeInOutCubic(anim.progress);
+					break;
+				}
+				if (anim.type == BTree::AnimationType::KeyHighlight && anim.highlightNode == node && anim.highlightKeyIndex == -1) {
+					isViolation = true;
+					violationColor = anim.highlightColor;
+					break;
+				}
+			}
+			
+			if (isSplitting) {
+				// Draw splitting animation - show keys redistributing
+				DrawRectangleRec(nodeRect, Fade(YELLOW, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
+				DrawRectangleLinesEx(nodeRect, 3, Fade(ORANGE, 0.8f));
+				
+				// Draw text to explain the split
+				const char* splitText = "SPLITTING NODE...";
+				Vector2 textSize = MeasureTextEx(uiFont, splitText, 14, 1);
+				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 25 };
+				DrawTextEx(uiFont, splitText, textPos, 14, 1, ORANGE);
+			} else if (isViolation) {
+				// Draw violation - node has too many keys
+				float pulse = 0.5f + 0.5f * sin(GetTime() * 10.0f);
+				DrawRectangleRec(nodeRect, Fade(violationColor, 0.3f * pulse));
+				DrawRectangleLinesEx(nodeRect, 4, Fade(violationColor, 0.9f));
+				
+				// Draw text to explain the violation
+				const char* violationText = "TOO MANY KEYS!";
+				Vector2 textSize = MeasureTextEx(uiFont, violationText, 14, 1);
+				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 25 };
+				DrawTextEx(uiFont, violationText, textPos, 14, 1, violationColor);
+			} else {
+				DrawRectangleRec(nodeRect, Fade(LIGHTGRAY, 0.95f));
+				DrawRectangleLinesEx(nodeRect, 2, DARKGRAY);
+			}
 
 			
 			for (float px : keyXs) {
@@ -269,7 +379,50 @@ int main() {
 				std::string s = ss.str();
 				Vector2 textSize = MeasureTextEx(uiFont, s.c_str(), fontSize, 1);
 				Vector2 pos = { tx - textSize.x/2.0f, L.cy - textSize.y/2.0f };
-				DrawTextEx(uiFont, s.c_str(), pos, fontSize, 1, BLACK);
+				
+				// Store key position for animation system
+				tree.setKeyPosition(node, i, {tx, L.cy});
+				
+				// Check if this key is being deleted (fading out)
+				bool isFadingOut = false;
+				float fadeProgress = 0.0f;
+				
+				// Check if this key is being highlighted or deleted
+				bool isHighlighted = false;
+				Color highlightColor = RED;
+				for (const auto& anim : tree.getCurrentAnimations()) {
+					if (anim.type == BTree::AnimationType::KeyHighlight && 
+					    anim.highlightNode == node && anim.highlightKeyIndex == (int)i) {
+						isHighlighted = true;
+						highlightColor = anim.highlightColor;
+						break;
+					}
+					// Check for deletion fade animation
+					if (anim.type == BTree::AnimationType::KeyMoving && 
+					    anim.targetNode == node && anim.targetIndex == (int)i && 
+					    anim.operation == BTree::AnimationStep::None) {
+						isFadingOut = true;
+						fadeProgress = anim.progress;
+						break;
+					}
+				}
+				
+				if (isFadingOut) {
+					// Draw fading out key (shrinking and fading)
+					float alpha = 1.0f - fadeProgress;
+					float scale = 1.0f - fadeProgress * 0.5f;
+					int fadeFontSize = (int)(fontSize * scale);
+					DrawTextEx(uiFont, s.c_str(), pos, fadeFontSize, 1, Fade(RED, alpha));
+					Rectangle keyRect = { tx - 18 * scale, L.cy - 18 * scale, 36 * scale, 36 * scale };
+					DrawRectangleLinesEx(keyRect, 3, Fade(RED, alpha));
+				} else if (isHighlighted) {
+					DrawTextEx(uiFont, s.c_str(), pos, fontSize, 1, highlightColor);
+					Rectangle keyRect = { tx - 18, L.cy - 18, 36, 36 };
+					DrawRectangleLinesEx(keyRect, 3, highlightColor);
+				} else {
+					DrawTextEx(uiFont, s.c_str(), pos, fontSize, 1, BLACK);
+				}
+				
 				Rectangle keyRect = { tx - 18, L.cy - 18, 36, 36 };
 				if (CheckCollisionPointRec(ctx.mouseWorld, keyRect)) {
 					DrawRectangleLinesEx(keyRect, 2, GOLD);
@@ -305,6 +458,52 @@ int main() {
 				DrawLineEx({fromX, parentPtrY}, {bestX, childCenterY}, 2.0f, DARKGRAY);
 			}
 		}
+		
+		// Draw animated keys moving
+		for (const auto& anim : tree.getCurrentAnimations()) {
+			if (anim.type == BTree::AnimationType::KeyMoving) {
+				float t = easeInOutCubic(anim.progress);
+				
+				// Calculate actual target position based on endPos (already set to correct world coords)
+				Vector2 targetPos = anim.endPos;
+				
+				// Convert screen start position to world coordinates
+				Vector2 startWorld = GetScreenToWorld2D(anim.startPos, camera);
+				
+				// Interpolate position
+				Vector2 currentPos;
+				currentPos.x = startWorld.x + (targetPos.x - startWorld.x) * t;
+				currentPos.y = startWorld.y + (targetPos.y - startWorld.y) * t;
+				
+				// Draw the moving key
+				float scale = 1.0f + 0.3f * sin(anim.progress * 3.14159f);
+				int fontSize = (int)(20 * scale);
+				std::stringstream ss; ss << anim.movingKey;
+				std::string s = ss.str();
+				Vector2 textSize = MeasureTextEx(uiFont, s.c_str(), fontSize, 1);
+				
+				// Draw a glowing circle behind the key
+				float radius = 24.0f * scale;
+				DrawCircleV(currentPos, radius + 4, Fade(SKYBLUE, 0.3f));
+				DrawCircleV(currentPos, radius, Fade(GOLD, 0.9f));
+				DrawCircleLinesV(currentPos, radius, ORANGE);
+				
+				// Draw the key value
+				Vector2 textPos = { currentPos.x - textSize.x/2.0f, currentPos.y - textSize.y/2.0f };
+				DrawTextEx(uiFont, s.c_str(), textPos, fontSize, 1, BLACK);
+				
+				// Draw trail effect
+				for (int i = 1; i <= 3; ++i) {
+					float trailT = std::max(0.0f, t - i * 0.1f);
+					Vector2 trailPos;
+					trailPos.x = startWorld.x + (targetPos.x - startWorld.x) * trailT;
+					trailPos.y = startWorld.y + (targetPos.y - startWorld.y) * trailT;
+					float trailAlpha = 0.3f * (1.0f - i * 0.3f);
+					DrawCircleV(trailPos, radius * 0.6f, Fade(GOLD, trailAlpha));
+				}
+			}
+		}
+		
 	EndMode2D();
 	
 	hoveredKey = ctx.hoveredKey;
@@ -352,6 +551,17 @@ int main() {
 	if (typing) {
 		std::string t = "Typing: "+typed+" (Enter to commit, Esc to cancel)";
 		DrawTextEx(uiFont, t.c_str(), {bx + padding, by - 24}, hudFontSize, 1, RED);
+	}
+	
+	// Show animation status
+	if (tree.isAnimating()) {
+		std::string animText = "Animating...";
+		Vector2 animTextSize = MeasureTextEx(uiFont, animText.c_str(), hudFontSize, 1);
+		float animX = 20.0f;
+		float animY = 20.0f;
+		Rectangle animBox = {animX - 8, animY - 4, animTextSize.x + 16, animTextSize.y + 8};
+		DrawRectangleRounded(animBox, 0.2f, 6, Fade(ORANGE, 0.8f));
+		DrawTextEx(uiFont, animText.c_str(), {animX, animY}, hudFontSize, 1, WHITE);
 	}
 
 		EndDrawing();

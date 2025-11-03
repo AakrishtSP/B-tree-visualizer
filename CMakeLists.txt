@@ -12,13 +12,31 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(raylib)
 
+# Generate embedded font header
+set(FONT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/JetBrainsMono-Regular.ttf")
+set(FONT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/embedded_font.h")
+
+add_custom_command(
+    OUTPUT ${FONT_HEADER}
+    COMMAND ${CMAKE_COMMAND} 
+        -DINPUT_FILE=${FONT_FILE}
+        -DOUTPUT_FILE=${FONT_HEADER}
+        -DVARIABLE_NAME=embedded_font_data
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_file.cmake
+    DEPENDS ${FONT_FILE}
+    COMMENT "Embedding font file into header"
+)
+
 # Collect sources from src/ and build a single executable.
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.c)
 file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS src/*.hpp src/*.h)
 
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${FONT_HEADER})
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 
