@@ -130,7 +130,7 @@ jobs:
         ART_PATH=""
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           # Prefer executables produced in Release folders by Visual Studio generator
-          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path '${BUILD_DIR}' -Recurse -Filter '*.exe' | Where-Object { $_.DirectoryName -match 'Release$' } | Select-Object -First 1).FullName")
+          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path '${BUILD_DIR}' -Recurse -Filter '*.exe' | Where-Object { \$_.DirectoryName -match 'Release$' } | Select-Object -First 1).FullName")
           OS_LABEL=win
           EXT=".exe"
         else
