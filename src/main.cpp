@@ -254,13 +254,11 @@ int main() {
 		if (IsKeyPressed(KEY_KP_SUBTRACT) || IsKeyPressed(KEY_MINUS)) zoom = std::max(zoom * 0.9f, 0.1f);
 
 		
-		BeginDrawing();
-		// Modern gradient background
-		ClearBackground((Color){245, 247, 250, 255});
-		DrawRectangleGradientV(0, 0, screenWidth, screenHeight/3, 
-			(Color){240, 242, 245, 255}, (Color){245, 247, 250, 255});
-
-	Camera2D camera;
+	BeginDrawing();
+	// Modern gradient background
+	ClearBackground(Color{245, 247, 250, 255});
+	DrawRectangleGradientV(0, 0, screenWidth, screenHeight/3, 
+		Color{240, 242, 245, 255}, Color{245, 247, 250, 255});	Camera2D camera;
 	camera.offset = {0.0f, 0.0f};
 	camera.target = {-pan.x, -pan.y};
 	camera.rotation = 0.0f;
@@ -367,11 +365,11 @@ int main() {
 			
 			if (isSplitting) {
 				// Draw splitting animation with modern styling
-				Color splitBg = (Color){255, 200, 100, 255};
-				Color splitBorder = (Color){255, 140, 0, 255};
+				Color splitBg = Color{255, 200, 100, 255};
+				Color splitBorder = Color{255, 140, 0, 255};
 				
 				// Rounded rectangle with shadow
-				DrawRectangleRounded((Rectangle){nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
+				DrawRectangleRounded(Rectangle{nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.15f));
 				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(splitBg, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
 				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 3, Fade(splitBorder, 0.9f));
@@ -386,10 +384,10 @@ int main() {
 			} else if (isViolation) {
 				// Draw violation with modern styling
 				float pulse = 0.5f + 0.5f * sin(GetTime() * 10.0f);
-				Color violationBg = (Color){255, 80, 80, 255};
+				Color violationBg = Color{255, 80, 80, 255};
 				
 				// Rounded rectangle with shadow
-				DrawRectangleRounded((Rectangle){nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
+				DrawRectangleRounded(Rectangle{nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.15f));
 				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(violationBg, 0.2f * pulse));
 				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 4, Fade(violationColor, 0.9f));
@@ -403,11 +401,11 @@ int main() {
 				DrawTextEx(uiFont, violationText, textPos, 13, 1, WHITE);
 			} else {
 				// Normal node with modern styling - rounded corners and shadow
-				Color nodeBg = (Color){255, 255, 255, 255};
-				Color nodeBorder = (Color){100, 120, 150, 255};
+				Color nodeBg = Color{255, 255, 255, 255};
+				Color nodeBorder = Color{100, 120, 150, 255};
 				
 				// Shadow
-				DrawRectangleRounded((Rectangle){nodeRect.x + 2, nodeRect.y + 2, nodeRect.width, nodeRect.height}, 
+				DrawRectangleRounded(Rectangle{nodeRect.x + 2, nodeRect.y + 2, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.12f));
 				// Node background
 				DrawRectangleRounded(nodeRect, 0.25f, 8, nodeBg);
@@ -416,13 +414,12 @@ int main() {
 			}
 
 			
-			// Draw cell dividers with modern subtle style
-			for (float px : keyXs) {
-				DrawLineEx({px, L.cy - nodeH/2.0f + 4}, {px, L.cy + nodeH/2.0f - 4}, 1.5f, 
-					Fade((Color){180, 190, 200, 255}, 0.5f));
-			}
-
-			
+		
+		// Draw cell dividers with modern subtle style
+		for (float px : keyXs) {
+			DrawLineEx({px, L.cy - nodeH/2.0f + 4}, {px, L.cy + nodeH/2.0f - 4}, 1.5f, 
+				Fade(Color{180, 190, 200, 255}, 0.5f));
+		}			
 			int fontSize = 20;
 			for (size_t i = 0; i < vec.size(); ++i) {
 				float leftCell = keyXs[i];
@@ -460,12 +457,12 @@ int main() {
 					}
 				}
 				
-				if (isFadingOut) {
-					// Draw fading out key with modern effect
-					float alpha = 1.0f - fadeProgress;
-					float scale = 1.0f - fadeProgress * 0.5f;
-					int fadeFontSize = (int)(fontSize * scale);
-					Color fadeColor = (Color){255, 80, 80, (unsigned char)(255 * alpha)};
+			if (isFadingOut) {
+				// Draw fading out key with modern effect
+				float alpha = 1.0f - fadeProgress;
+				float scale = 1.0f - fadeProgress * 0.5f;
+				int fadeFontSize = (int)(fontSize * scale);
+				Color fadeColor = Color{255, 80, 80, (unsigned char)(255 * alpha)};
 					DrawTextEx(keyFont, s.c_str(), pos, fadeFontSize, 1, fadeColor);
 					
 					float circleRadius = 22.0f * scale;
@@ -480,13 +477,13 @@ int main() {
 					DrawCircleLinesV({tx, L.cy}, 22, glowColor);
 				} else {
 					// Normal key with better styling
-					DrawTextEx(keyFont, s.c_str(), pos, fontSize, 1, (Color){40, 50, 65, 255});
+					DrawTextEx(keyFont, s.c_str(), pos, fontSize, 1, Color{40, 50, 65, 255});
 				}
 				
 				// Hover effect with modern circle
 				Rectangle keyRect = { tx - 22, L.cy - 22, 44, 44 };
 				if (CheckCollisionPointRec(ctx.mouseWorld, keyRect)) {
-					Color hoverColor = (Color){255, 180, 0, 255};
+					Color hoverColor = Color{255, 180, 0, 255};
 					DrawCircleV({tx, L.cy}, 24, Fade(hoverColor, 0.15f));
 					DrawCircleLinesV({tx, L.cy}, 24, hoverColor);
 					ctx.hoveredKey = vec[i].value;
@@ -498,8 +495,8 @@ int main() {
 			float pointerH = 8.0f;
 			for (float px : ptrs) {
 				float py = L.cy + 18.0f;
-				DrawCircle(px, py, 4, (Color){100, 120, 150, 255});
-				DrawCircle(px, py, 2, (Color){180, 190, 200, 255});
+				DrawCircle(px, py, 4, Color{100, 120, 150, 255});
+				DrawCircle(px, py, 2, Color{180, 190, 200, 255});
 			}
 		}
 
@@ -562,23 +559,20 @@ int main() {
 				std::string s = ss.str();
 				Vector2 textSize = MeasureTextEx(keyFont, s.c_str(), fontSize, 1);
 				
-				// Draw glowing effect with multiple circles
-				float radius = 28.0f * scale;
-				Color glowColor1 = isDeletion ? (Color){255, 80, 80, 255} : (Color){100, 180, 255, 255};
-				Color glowColor2 = isDeletion ? (Color){255, 120, 120, 255} : (Color){255, 200, 80, 255};
-				
-				DrawCircleV(currentPos, radius + 12, Fade(glowColor1, 0.15f * alpha));
+			// Draw glowing effect with multiple circles
+			float radius = 28.0f * scale;
+			Color glowColor1 = isDeletion ? Color{255, 80, 80, 255} : Color{100, 180, 255, 255};
+			Color glowColor2 = isDeletion ? Color{255, 120, 120, 255} : Color{255, 200, 80, 255};				DrawCircleV(currentPos, radius + 12, Fade(glowColor1, 0.15f * alpha));
 				DrawCircleV(currentPos, radius + 6, Fade(glowColor1, 0.25f * alpha));
 				DrawCircleV(currentPos, radius + 3, Fade(glowColor2, 0.4f * alpha));
 				DrawCircleV(currentPos, radius, Fade(WHITE, alpha));
 				DrawCircleLinesV(currentPos, radius, Fade(glowColor2, alpha));
 				DrawCircleLinesV(currentPos, radius - 2, Fade(glowColor2, 0.5f * alpha));
 				
-				// Draw the key value
-				Vector2 textPos = { currentPos.x - textSize.x/2.0f, currentPos.y - textSize.y/2.0f };
-				DrawTextEx(keyFont, s.c_str(), textPos, fontSize, 1, Fade((Color){40, 50, 65, 255}, alpha));
-				
-				// Draw enhanced trail effect (only for insertion)
+			
+			// Draw the key value
+			Vector2 textPos = { currentPos.x - textSize.x/2.0f, currentPos.y - textSize.y/2.0f };
+			DrawTextEx(keyFont, s.c_str(), textPos, fontSize, 1, Fade(Color{40, 50, 65, 255}, alpha));				// Draw enhanced trail effect (only for insertion)
 				if (!isDeletion) {
 					for (int i = 1; i <= 5; ++i) {
 						float trailT = std::max(0.0f, t - i * 0.08f);
@@ -597,12 +591,10 @@ int main() {
 	
 	hoveredKey = ctx.hoveredKey;
 
-	// Modern title bar
-	Rectangle titleBar = {0, 0, (float)screenWidth, 60};
-	DrawRectangleGradientV(0, 0, screenWidth, 60, 
-		(Color){55, 65, 81, 255}, (Color){75, 85, 99, 255});
-	
-	const char* title = "B-Tree Visualizer";
+// Modern title bar
+Rectangle titleBar = {0, 0, (float)screenWidth, 60};
+DrawRectangleGradientV(0, 0, screenWidth, 60, 
+	Color{55, 65, 81, 255}, Color{75, 85, 99, 255});	const char* title = "B-Tree Visualizer";
 	Vector2 titleSize = MeasureTextEx(titleFont, title, 28, 1);
 	DrawTextEx(titleFont, title, {20, 16}, 28, 1, WHITE);
 	
@@ -646,21 +638,20 @@ int main() {
 	float by = 80.0f;
 
 	
-	Rectangle legendRect = { bx, by, boxW, boxH };
-	// Shadow
-	DrawRectangleRounded((Rectangle){bx + 3, by + 3, boxW, boxH}, 0.15f, 8, Fade(BLACK, 0.2f));
-	// Background
-	DrawRectangleRounded(legendRect, 0.15f, 8, Fade((Color){255, 255, 255, 255}, 0.96f));
-	DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, (Color){200, 210, 220, 255});
 
-	// Legend title
+Rectangle legendRect = { bx, by, boxW, boxH };
+// Shadow
+DrawRectangleRounded(Rectangle{bx + 3, by + 3, boxW, boxH}, 0.15f, 8, Fade(BLACK, 0.2f));
+// Background
+DrawRectangleRounded(legendRect, 0.15f, 8, Fade(Color{255, 255, 255, 255}, 0.96f));
+DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, Color{200, 210, 220, 255});	// Legend title
 	const char* legendTitle = "Controls";
 	Vector2 legendTitleSize = MeasureTextEx(uiFont, legendTitle, 18, 1);
-	DrawTextEx(uiFont, legendTitle, {bx + padding, by + padding - 2}, 18, 1, (Color){55, 65, 81, 255});
+	DrawTextEx(uiFont, legendTitle, {bx + padding, by + padding - 2}, 18, 1, Color{55, 65, 81, 255});
 	
 	// Separator line
 	DrawLineEx({bx + padding, by + padding + 22}, 
-		{bx + boxW - padding, by + padding + 22}, 2, Fade((Color){200, 210, 220, 255}, 0.5f));
+		{bx + boxW - padding, by + padding + 22}, 2, Fade(Color{200, 210, 220, 255}, 0.5f));
 
 	
 	for (size_t i = 0; i < legend.size(); ++i) {
@@ -676,8 +667,8 @@ int main() {
 			// Draw key icon
 			char keyChar[2] = {legend[i][0], '\0'};
 			Rectangle keyIcon = { bx + padding, ty - 2, 20, 20 };
-			DrawRectangleRounded(keyIcon, 0.25f, 4, (Color){100, 180, 255, 255});
-			DrawRectangleRoundedLines(keyIcon, 0.25f, 4, 1.5f, (Color){70, 140, 220, 255});
+			DrawRectangleRounded(keyIcon, 0.25f, 4, Color{100, 180, 255, 255});
+			DrawRectangleRoundedLines(keyIcon, 0.25f, 4, 1.5f, Color{70, 140, 220, 255});
 			
 			Vector2 keyTextSize = MeasureTextEx(uiFont, keyChar, 14, 1);
 			DrawTextEx(uiFont, keyChar, 
@@ -686,13 +677,13 @@ int main() {
 			
 			// Draw description
 			const char* desc = legend[i].c_str() + 2;
-			DrawTextEx(uiFont, desc, {tx, ty}, hudFontSize, 1, (Color){75, 85, 99, 255});
+			DrawTextEx(uiFont, desc, {tx, ty}, hudFontSize, 1, Color{75, 85, 99, 255});
 		} else {
 			// Draw mouse action icon
-			DrawCircle(bx + padding + 8, ty + 8, 6, (Color){150, 160, 170, 255});
-			DrawCircle(bx + padding + 8, ty + 8, 4, (Color){200, 210, 220, 255});
+			DrawCircle(bx + padding + 8, ty + 8, 6, Color{150, 160, 170, 255});
+			DrawCircle(bx + padding + 8, ty + 8, 4, Color{200, 210, 220, 255});
 			
-			DrawTextEx(uiFont, legend[i].c_str(), {tx, ty}, hudFontSize, 1, (Color){75, 85, 99, 255});
+			DrawTextEx(uiFont, legend[i].c_str(), {tx, ty}, hudFontSize, 1, Color{75, 85, 99, 255});
 		}
 	}
 
@@ -710,20 +701,20 @@ int main() {
 		
 		Rectangle inputBox = {inputX, inputY, inputBoxW, inputBoxH};
 		// Shadow
-		DrawRectangleRounded((Rectangle){inputX + 3, inputY + 3, inputBoxW, inputBoxH}, 
+		DrawRectangleRounded(Rectangle{inputX + 3, inputY + 3, inputBoxW, inputBoxH}, 
 			0.2f, 8, Fade(BLACK, 0.25f));
 		// Background
-		DrawRectangleRounded(inputBox, 0.2f, 8, (Color){255, 255, 255, 255});
-		DrawRectangleRoundedLines(inputBox, 0.2f, 8, 3, (Color){100, 180, 255, 255});
+		DrawRectangleRounded(inputBox, 0.2f, 8, Color{255, 255, 255, 255});
+		DrawRectangleRoundedLines(inputBox, 0.2f, 8, 3, Color{100, 180, 255, 255});
 		
 		DrawTextEx(uiFont, fullText.c_str(), 
-			{inputX + 20, inputY + (inputBoxH - textSize.y)/2}, 18, 1, (Color){40, 50, 65, 255});
+			{inputX + 20, inputY + (inputBoxH - textSize.y)/2}, 18, 1, Color{40, 50, 65, 255});
 		
 		// Help text
 		const char* helpText = "Enter to submit • Esc to cancel";
 		Vector2 helpSize = MeasureTextEx(uiFont, helpText, 13, 1);
 		DrawTextEx(uiFont, helpText, 
-			{inputX + (inputBoxW - helpSize.x)/2, inputY - 20}, 13, 1, (Color){120, 130, 140, 255});
+			{inputX + (inputBoxW - helpSize.x)/2, inputY - 20}, 13, 1, Color{120, 130, 140, 255});
 	}
 	
 	// Show animation status with modern badge
@@ -738,11 +729,11 @@ int main() {
 		float pulse = 0.8f + 0.2f * sin(GetTime() * 4.0f);
 		
 		// Shadow
-		DrawRectangleRounded((Rectangle){animX + 2, animY + 2, animBox.width, animBox.height}, 
+		DrawRectangleRounded(Rectangle{animX + 2, animY + 2, animBox.width, animBox.height}, 
 			0.3f, 8, Fade(BLACK, 0.2f));
 		// Background with pulse
-		DrawRectangleRounded(animBox, 0.3f, 8, Fade((Color){255, 160, 50, 255}, pulse));
-		DrawRectangleRoundedLines(animBox, 0.3f, 8, 2, (Color){255, 140, 0, 255});
+		DrawRectangleRounded(animBox, 0.3f, 8, Fade(Color{255, 160, 50, 255}, pulse));
+		DrawRectangleRoundedLines(animBox, 0.3f, 8, 2, Color{255, 140, 0, 255});
 		
 		// Animated dots
 		int dotCount = ((int)(GetTime() * 3) % 4);
