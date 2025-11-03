@@ -1,0 +1,53 @@
+# Build artifacts
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/*.cmake
+/compile_commands.json
+/Makefile
+
+# Generated binaries
+/build/bin/
+*.exe
+*.out
+*.AppImage
+
+# Dependency cache (fetchcontent)
+build/_deps/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*~
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files created during editing/script runs
+*.bak
+*.bak2
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+*.tmp
+
+# C++ object and dependency files
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+
+# Core dumps
+core
+
+# Ignore user-specific local environment files
+.env

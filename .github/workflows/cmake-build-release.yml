@@ -1,0 +1,186 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake Build and Release 
+
+on:
+  push:
+    branches: "*"
+
+  pull_request:
+    branches: [ "master" ]
+
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      # Set up a matrix to run the following 3 configurations:
+      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
+      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: clang
+          - os: windows-latest
+            c_compiler: gcc
+          - os: ubuntu-latest
+            c_compiler: cl
+
+    steps:
+    - uses: actions/checkout@v4
+      # with:
+      #   submodules: recursive
+
+    - name: Set up CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+          cmake-version: '3.30.x'
+
+    - name: Init submodules
+      run: git submodule update --init --recursive
+
+    - name: Restore cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          build/
+
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
+
+    - name: Install Dependencies on Ubuntu
+      if: runner.os == 'Linux'
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            wayland-protocols \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libgl1-mesa-dev
+
+
+    - name: Configure CMake
+      run: |
+          cmake -B build -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
+
+
+    - name: Build
+      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      # run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: cmake --build build --config ${{ matrix.build_type }}
+
+    - name: Test
+      # working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: build
+      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest --build-config ${{ matrix.build_type }}
+
+
+    - name: Check if this is the repo and on master branch
+      id: release_check
+      shell: bash
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+          echo "release=true" >> $GITHUB_OUTPUT
+        else
+          echo "release=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Prepare release variables
+      if: steps.release_check.outputs.release == 'true'
+      id: prepare_release
+      shell: bash
+      run: |
+        REPO_NAME="$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+        TAG_NAME="v1.0.${{ github.run_number }}-${{ github.sha }}"
+        echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        echo "ARTIFACT_BASE=${REPO_NAME}_${TAG_NAME}" >> $GITHUB_ENV
+
+    - name: Check GH_PAT secret
+      if: steps.release_check.outputs.release == 'true'
+      id: ghpat_check
+      shell: bash
+      run: |
+        if [[ -z "${{ secrets.GH_PAT }}" ]]; then
+          echo "have_token=false" >> $GITHUB_OUTPUT
+        else
+          echo "have_token=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Locate built artifact
+      if: steps.release_check.outputs.release == 'true'
+      id: find_artifact
+      shell: bash
+      run: |
+        set -e
+        ART_PATH=""
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          # find the first .exe produced under build/
+          ART_PATH=$(powershell -Command "Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Select-Object -First 1 | ForEach-Object { $_.FullName }")
+          ART_NAME="${{ env.ARTIFACT_BASE }}_windows_${{ matrix.c_compiler }}.exe"
+        else
+          # linux: find first executable in build/bin or anywhere under build
+          ART_PATH=$(find build -type f -perm /111 -print | head -n1 || true)
+          if [[ -z "$ART_PATH" ]]; then
+            ART_PATH=$(find build -type f -name 'btree*' | head -n1 || true)
+          fi
+          ART_NAME="${{ env.ARTIFACT_BASE }}_linux_${{ matrix.c_compiler }}"
+        fi
+        if [[ -z "$ART_PATH" ]]; then
+          echo "No artifact found." >&2
+          exit 1
+        fi
+        echo "ART_PATH=$ART_PATH" >> $GITHUB_ENV
+        echo "ART_NAME=$ART_NAME" >> $GITHUB_ENV
+
+    - name: Create GitHub Release
+      if: steps.release_check.outputs.release == 'true' && steps.ghpat_check.outputs.have_token == 'true'
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        name: "${{ env.REPO_NAME }} Build ${{ github.run_number }}"
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GH_PAT }}
+    - name: Prepare asset file
+      if: steps.release_check.outputs.release == 'true'
+      shell: bash
+      run: |
+        mkdir -p build
+        cp "${ART_PATH}" "build/${ART_NAME}"
+        ls -lh build/${ART_NAME}
+
+    - name: Upload Release Asset
+      if: steps.release_check.outputs.release == 'true' && steps.ghpat_check.outputs.have_token == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        files: build/${{ env.ART_NAME }}
+        token: ${{ secrets.GH_PAT }}
