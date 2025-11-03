@@ -387,10 +387,8 @@ int main() {
 				// Rounded rectangle with shadow
 				DrawRectangleRounded(Rectangle{nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.15f));
-				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(splitBg, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
-				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 3, Fade(splitBorder, 0.9f));
-				
-				// Draw text to explain the split with background badge
+			DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(splitBg, 0.3f + 0.4f * sin(splitProgress * 3.14159f)));
+			DrawRectangleRoundedLines(nodeRect, 0.25f, 8, Fade(splitBorder, 0.9f));				// Draw text to explain the split with background badge
 				const char* splitText = "SPLITTING NODE...";
 				Vector2 textSize = MeasureTextEx(uiFont, splitText, 13, 1);
 				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 30 };
@@ -405,10 +403,8 @@ int main() {
 				// Rounded rectangle with shadow
 				DrawRectangleRounded(Rectangle{nodeRect.x + 3, nodeRect.y + 3, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.15f));
-				DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(violationBg, 0.2f * pulse));
-				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 4, Fade(violationColor, 0.9f));
-				
-				// Draw text to explain the violation with background badge
+			DrawRectangleRounded(nodeRect, 0.25f, 8, Fade(violationBg, 0.2f * pulse));
+			DrawRectangleRoundedLines(nodeRect, 0.25f, 8, Fade(violationColor, 0.9f));				// Draw text to explain the violation with background badge
 				const char* violationText = "TOO MANY KEYS!";
 				Vector2 textSize = MeasureTextEx(uiFont, violationText, 13, 1);
 				Vector2 textPos = { nodeRect.x + nodeRect.width/2 - textSize.x/2, nodeRect.y - 30 };
@@ -423,10 +419,10 @@ int main() {
 				// Shadow
 				DrawRectangleRounded(Rectangle{nodeRect.x + 2, nodeRect.y + 2, nodeRect.width, nodeRect.height}, 
 					0.25f, 8, Fade(BLACK, 0.12f));
-				// Node background
-				DrawRectangleRounded(nodeRect, 0.25f, 8, nodeBg);
-				// Border
-				DrawRectangleRoundedLines(nodeRect, 0.25f, 8, 2.5f, nodeBorder);
+			// Node background
+			DrawRectangleRounded(nodeRect, 0.25f, 8, nodeBg);
+			// Border
+			DrawRectangleRoundedLines(nodeRect, 0.25f, 8, nodeBorder);
 			}
 
 			
@@ -660,7 +656,7 @@ Rectangle legendRect = { bx, by, boxW, boxH };
 DrawRectangleRounded(Rectangle{bx + 3, by + 3, boxW, boxH}, 0.15f, 8, Fade(BLACK, 0.2f));
 // Background
 DrawRectangleRounded(legendRect, 0.15f, 8, Fade(Color{255, 255, 255, 255}, 0.96f));
-DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, Color{200, 210, 220, 255});	// Legend title
+DrawRectangleRoundedLines(legendRect, 0.15f, 8, Color{200, 210, 220, 255});	// Legend title
 	const char* legendTitle = "Controls";
 	Vector2 legendTitleSize = MeasureTextEx(uiFont, legendTitle, 18, 1);
 	DrawTextEx(uiFont, legendTitle, {bx + padding, by + padding - 2}, 18, 1, Color{55, 65, 81, 255});
@@ -684,7 +680,7 @@ DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, Color{200, 210, 220, 255});	/
 			char keyChar[2] = {legend[i][0], '\0'};
 			Rectangle keyIcon = { bx + padding, ty - 2, 20, 20 };
 			DrawRectangleRounded(keyIcon, 0.25f, 4, Color{100, 180, 255, 255});
-			DrawRectangleRoundedLines(keyIcon, 0.25f, 4, 1.5f, Color{70, 140, 220, 255});
+			DrawRectangleRoundedLines(keyIcon, 0.25f, 4, Color{70, 140, 220, 255});
 			
 			Vector2 keyTextSize = MeasureTextEx(uiFont, keyChar, 14, 1);
 			DrawTextEx(uiFont, keyChar, 
@@ -721,7 +717,7 @@ DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, Color{200, 210, 220, 255});	/
 			0.2f, 8, Fade(BLACK, 0.25f));
 		// Background
 		DrawRectangleRounded(inputBox, 0.2f, 8, Color{255, 255, 255, 255});
-		DrawRectangleRoundedLines(inputBox, 0.2f, 8, 3, Color{100, 180, 255, 255});
+		DrawRectangleRoundedLines(inputBox, 0.2f, 8, Color{100, 180, 255, 255});
 		
 		DrawTextEx(uiFont, fullText.c_str(), 
 			{inputX + 20, inputY + (inputBoxH - textSize.y)/2}, 18, 1, Color{40, 50, 65, 255});
@@ -749,7 +745,7 @@ DrawRectangleRoundedLines(legendRect, 0.15f, 8, 2, Color{200, 210, 220, 255});	/
 			0.3f, 8, Fade(BLACK, 0.2f));
 		// Background with pulse
 		DrawRectangleRounded(animBox, 0.3f, 8, Fade(Color{255, 160, 50, 255}, pulse));
-		DrawRectangleRoundedLines(animBox, 0.3f, 8, 2, Color{255, 140, 0, 255});
+		DrawRectangleRoundedLines(animBox, 0.3f, 8, Color{255, 140, 0, 255});
 		
 		// Animated dots
 		int dotCount = ((int)(GetTime() * 3) % 4);

@@ -5,7 +5,7 @@ project(btree-raylib VERSION 0.1 LANGUAGES C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
-set(RAYLIB_VERSION 5.0)
+set(RAYLIB_VERSION 5.5)
 FetchContent_Declare(
     raylib
     URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
