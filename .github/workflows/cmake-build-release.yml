@@ -170,12 +170,13 @@ jobs:
       shell: bash
       run: |
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          pwsh -NoLogo -NoProfile -Command "\
-            $destDir = Join-Path $env:GITHUB_WORKSPACE 'build'; \
-            New-Item -ItemType Directory -Force -Path $destDir | Out-Null; \
-            $dest = Join-Path $destDir $env:ART_NAME; \
-            Copy-Item -LiteralPath $env:ART_PATH -Destination $dest -Force; \
-            Get-Item $dest | Format-List -Property Name,Length,FullName"
+          pwsh -NoLogo -NoProfile -Command '
+            $destDir = Join-Path $env:GITHUB_WORKSPACE "build";
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null;
+            $dest = Join-Path $destDir $env:ART_NAME;
+            Copy-Item -LiteralPath $env:ART_PATH -Destination $dest -Force;
+            Get-Item $dest | Format-List -Property Name,Length,FullName
+          '
         else
           mkdir -p build
           cp "${ART_PATH}" "build/${ART_NAME}"
