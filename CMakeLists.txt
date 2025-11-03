@@ -31,12 +31,7 @@ add_custom_command(
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.c)
 file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS src/*.hpp src/*.h)
 
-# On Windows, use WIN32 to hide console; on other platforms, use regular executable
-if(WIN32)
-    add_executable(${PROJECT_NAME} WIN32 ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${FONT_HEADER})
-else()
-    add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${FONT_HEADER})
-endif()
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${FONT_HEADER})
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -44,6 +39,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+
+# On Windows, hide the console window without changing entry point
+if(WIN32 AND MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+    )
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
