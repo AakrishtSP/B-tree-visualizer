@@ -2,7 +2,13 @@
 
 This project implements a simple B-Tree and a Raylib-based visualizer with interactive controls.
 
-Controls (keyboard & mouse)
+## Try it Online
+
+**Web Version (Desktop):** https://aakrishtsp.github.io/B-tree-visualizer/btree-raylib.html
+
+> **Note:** This project was designed for desktop use and later ported to web. Mobile devices and keyboard-less interactions are not supported. For the best experience, use a desktop browser with a keyboard, or download the native application from the [releases page](https://github.com/AakrishtSP/B-tree-visualizer/releases).
+
+## Controls (keyboard & mouse)
 - A : Add a single random key (incrementing seed)
 - M : Add multiple random keys — press M, type a count, then Enter to insert that many
 - I : Insert a specific key — press I, type the number, then Enter
