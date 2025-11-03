@@ -56,7 +56,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          build/
+          build-${{ matrix.platform_short }}/
 
         key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
 
@@ -81,20 +81,20 @@ jobs:
       run: |
         # Use relative source dir to avoid Windows path escaping issues in bash
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.platform_short }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         else
-          cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.platform_short }} -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         fi
 
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
-      run: cmake --build build --config ${{ matrix.build_type }}
+      run: cmake --build build-${{ matrix.platform_short }} --config ${{ matrix.build_type }}
 
     - name: Test
       # working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      working-directory: build
+      working-directory: build-${{ matrix.platform_short }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
@@ -126,16 +126,17 @@ jobs:
       shell: bash
       run: |
         set -e
+        BUILD_DIR="build-${{ matrix.platform_short }}"
         ART_PATH=""
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           # Prefer executables produced in Release folders by Visual Studio generator
-          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Where-Object { $_.DirectoryName -match 'Release$' } | Select-Object -First 1).FullName")
+          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path '${BUILD_DIR}' -Recurse -Filter '*.exe' | Where-Object { $_.DirectoryName -match 'Release$' } | Select-Object -First 1).FullName")
           OS_LABEL=win
           EXT=".exe"
         else
-          ART_PATH=$(find build -type f -perm /111 -print | head -n1 || true)
+          ART_PATH=$(find "${BUILD_DIR}" -type f -perm /111 -print | head -n1 || true)
           if [[ -z "$ART_PATH" ]]; then
-            ART_PATH=$(find build -type f -name 'btree*' | head -n1 || true)
+            ART_PATH=$(find "${BUILD_DIR}" -type f -name 'btree*' | head -n1 || true)
           fi
           OS_LABEL=linux
           EXT=""
