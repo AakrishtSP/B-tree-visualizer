@@ -28,26 +28,16 @@ jobs:
       #
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang, cl]
         include:
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
+            platform_short: win
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++
-        exclude:
-          - os: windows-latest
-            c_compiler: clang
-          - os: windows-latest
-            c_compiler: gcc
-          - os: ubuntu-latest
-            c_compiler: cl
+            platform_short: linux
+        build_type: [Release]
 
     steps:
     - uses: actions/checkout@v4
@@ -120,10 +110,9 @@ jobs:
       shell: bash
       run: |
         REPO_NAME="$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
-        TAG_NAME="v1.0.${{ github.run_number }}-${{ github.sha }}"
         echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
-        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-        echo "ARTIFACT_BASE=${REPO_NAME}_${TAG_NAME}" >> $GITHUB_ENV
+        # Use run number (short) rather than long sha to keep artifact names short
+        echo "RUN_NUM=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
 
     - name: Locate built artifact
       if: steps.release_check.outputs.release == 'true'
@@ -133,17 +122,19 @@ jobs:
         set -e
         ART_PATH=""
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          # find the first .exe produced under build/
-          ART_PATH=$(powershell -Command "Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Select-Object -First 1 | ForEach-Object { $_.FullName }")
-          ART_NAME="${{ env.ARTIFACT_BASE }}_windows_${{ matrix.c_compiler }}.exe"
+          ART_PATH=$(powershell -NoProfile -Command "(Get-ChildItem -Path 'build' -Recurse -Filter '*.exe' | Select-Object -First 1).FullName")
+          OS_LABEL=win
+          EXT=".exe"
         else
-          # linux: find first executable in build/bin or anywhere under build
           ART_PATH=$(find build -type f -perm /111 -print | head -n1 || true)
           if [[ -z "$ART_PATH" ]]; then
             ART_PATH=$(find build -type f -name 'btree*' | head -n1 || true)
           fi
-          ART_NAME="${{ env.ARTIFACT_BASE }}_linux_${{ matrix.c_compiler }}"
+          OS_LABEL=linux
+          EXT=""
         fi
+        # Short artifact name: repo + run number + platform (no compiler/sha)
+        ART_NAME="${REPO_NAME}_r${GITHUB_RUN_NUMBER}_${OS_LABEL}${EXT}"
         if [[ -z "$ART_PATH" ]]; then
           echo "No artifact found." >&2
           exit 1
@@ -159,7 +150,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.TAG_NAME }}
+        tag_name: run-${{ github.run_number }}
         release_name: "${{ env.REPO_NAME }} Build ${{ github.run_number }}"
         draft: false
         prerelease: false
