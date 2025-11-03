@@ -119,6 +119,8 @@ jobs:
         printf '%s\n' "REPO_NAME=$REPO_NAME" >> "$GITHUB_ENV"
         # Use run number (short) rather than long sha to keep artifact names short
         printf '%s\n' "RUN_NUM=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+        # Common tag for this run
+        printf '%s\n' "REL_TAG=run-$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
 
     - name: Locate built artifact
       if: steps.release_check.outputs.release == 'true'
@@ -150,15 +152,15 @@ jobs:
         printf '%s\n' "ART_PATH=$ART_PATH" >> "$GITHUB_ENV"
         printf '%s\n' "ART_NAME=$ART_NAME" >> "$GITHUB_ENV"
 
-    - name: Create GitHub Release (using GITHUB_TOKEN)
-      if: steps.release_check.outputs.release == 'true'
+    - name: Create GitHub Release (Linux only)
+      if: steps.release_check.outputs.release == 'true' && matrix.platform_short == 'linux'
       id: create_release
       uses: actions/create-release@v1
       continue-on-error: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: run-${{ github.run_number }}
+        tag_name: ${{ env.REL_TAG }}
         release_name: "${{ env.REPO_NAME }} Build ${{ github.run_number }}"
         draft: false
         prerelease: false
@@ -167,24 +169,31 @@ jobs:
       if: steps.release_check.outputs.release == 'true'
       shell: bash
       run: |
-        mkdir -p build
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          pwsh -NoLogo -NoProfile -Command "Copy-Item -LiteralPath \"$env:ART_PATH\" -Destination \"build/$env:ART_NAME\" -Force"
+          pwsh -NoLogo -NoProfile -Command "\
+            $destDir = Join-Path $env:GITHUB_WORKSPACE 'build'; \
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null; \
+            $dest = Join-Path $destDir $env:ART_NAME; \
+            Copy-Item -LiteralPath $env:ART_PATH -Destination $dest -Force; \
+            Get-Item $dest | Format-List -Property Name,Length,FullName"
         else
+          mkdir -p build
           cp "${ART_PATH}" "build/${ART_NAME}"
+          ls -lh "build/${ART_NAME}" || ls -lh build
         fi
-        ls -lh build/${ART_NAME} || ls -lh build
 
-    - name: Upload Release Asset
-      if: steps.release_check.outputs.release == 'true' && steps.create_release.outcome == 'success'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload release asset (idempotent)
+      if: steps.release_check.outputs.release == 'true'
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build/${{ env.ART_NAME }}
-        asset_name: ${{ env.ART_NAME }}
-        asset_content_type: application/octet-stream
+        tag_name: ${{ env.REL_TAG }}
+        name: "${{ env.REPO_NAME }} Build ${{ github.run_number }}"
+        files: |
+          build/${{ env.ART_NAME }}
+        draft: false
+        prerelease: false
+        append_body: true
+        fail_on_unmatched_files: true
 
     - name: Upload build artifact as workflow artifact (fallback)
       if: steps.release_check.outputs.release == 'true' && steps.create_release.outcome != 'success'
