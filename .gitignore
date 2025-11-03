@@ -1,5 +1,7 @@
 # Build artifacts
 /build/
+/build-web/
+/build-win/
 /CMakeFiles/
 /CMakeCache.txt
 /*.cmake

@@ -56,6 +56,27 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
 
+## Build (Web - Emscripten)
+Build for web browsers using WebAssembly:
+
+```bash
+./build-web.sh
+```
+
+Or manually with Emscripten:
+
+```bash
+emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DPLATFORM=Web
+cmake --build build-web -j4
+```
+
+Then serve locally:
+```bash
+cd build-web/bin && python3 -m http.server 8000
+```
+
+See [web/README.md](web/README.md) for detailed instructions.
+
 ## Prerequisites
 - CMake (>= 3.24) installed and available on PATH. Install from https://cmake.org if needed.
 - A C/C++ toolchain: GCC/Clang on Linux/macOS or Visual Studio on Windows.

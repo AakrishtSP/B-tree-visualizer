@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B-Tree Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            margin-top: 10px;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        #canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        canvas.emscripten {
+            border: none;
+            background-color: #f5f7fa;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            display: block;
+            image-rendering: optimizeSpeed;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -o-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            -ms-interpolation-mode: nearest-neighbor;
+        }
+        
+        .status-bar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px 20px;
+            color: white;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        #status {
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .info-box h2 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f5f7fa;
+            border-radius: 5px;
+        }
+        
+        .key-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 25px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        
+        footer {
+            color: white;
+            text-align: center;
+            margin-top: auto;
+            padding: 20px;
+            opacity: 0.8;
+        }
+        
+        footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌳 B-Tree Visualizer</h1>
+            <p class="subtitle">Interactive Animation & Exploration</p>
+        </header>
+        
+        <div id="canvas-container">
+            <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+        </div>
+        
+        <div class="status-bar">
+            <span class="spinner" id="spinner" style="display: none;"></span>
+            <span id="status">Downloading...</span>
+        </div>
+        
+        <div class="info-box">
+            <h2>Controls</h2>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <span class="key-badge">A</span>
+                    <span>Add random key</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">M</span>
+                    <span>Add multiple keys</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">I</span>
+                    <span>Insert specific value</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">D</span>
+                    <span>Delete last added</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">H</span>
+                    <span>Delete hovered key</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">X</span>
+                    <span>Clear all keys</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Z</span>
+                    <span>Zoom to fit</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">R</span>
+                    <span>Reset with samples</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Drag</span>
+                    <span>Pan view</span>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Wheel</span>
+                    <span>Zoom in/out</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Built with <a href="https://www.raylib.com/" target="_blank">Raylib</a> • 
+           <a href="https://github.com/AakrishtSP/B-tree-visualizer" target="_blank">View on GitHub</a></p>
+    </footer>
+    
+    <script type='text/javascript'>
+        var statusElement = document.getElementById('status');
+        var spinnerElement = document.getElementById('spinner');
+        
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: function(text) {
+                console.log(text);
+            },
+            printErr: function(text) {
+                console.error(text);
+            },
+            canvas: (function() {
+                var canvas = document.getElementById('canvas');
+                canvas.addEventListener("webglcontextlost", function(e) {
+                    alert('WebGL context lost. You will need to reload the page.');
+                    e.preventDefault();
+                }, false);
+                return canvas;
+            })(),
+            setStatus: function(text) {
+                if (text) {
+                    spinnerElement.style.display = 'inline-block';
+                    statusElement.innerHTML = text;
+                } else {
+                    spinnerElement.style.display = 'none';
+                    statusElement.innerHTML = 'Ready! Use keyboard controls to interact.';
+                }
+            },
+            totalDependencies: 0,
+            monitorRunDependencies: function(left) {
+                this.totalDependencies = Math.max(this.totalDependencies, left);
+                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : '');
+            }
+        };
+        
+        Module.setStatus('Downloading...');
+        
+        window.onerror = function() {
+            Module.setStatus('Exception thrown, see JavaScript console');
+            spinnerElement.style.display = 'none';
+            Module.setStatus = function(text) {
+                if (text) statusElement.innerHTML = text;
+            };
+        };
+    </script>
+    {{{ SCRIPT }}}
+</body>
+</html>

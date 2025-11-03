@@ -10,6 +10,12 @@ FetchContent_Declare(
     raylib
     URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
 )
+
+# Set platform for Raylib
+if(EMSCRIPTEN)
+    set(PLATFORM "Web" CACHE STRING "Platform" FORCE)
+endif()
+
 FetchContent_MakeAvailable(raylib)
 
 # Generate embedded font header
@@ -39,6 +45,35 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+
+# Web-specific settings (Emscripten)
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        SUFFIX ".html"
+    )
+    
+    # Emscripten link flags for better web experience
+    target_link_options(${PROJECT_NAME} PRIVATE
+        -sUSE_GLFW=3
+        -sASSERTIONS=1
+        -sWASM=1
+        -sASYNCIFY
+        -sALLOW_MEMORY_GROWTH=1
+        --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html
+        --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/src/resources@/resources
+    )
+    
+    # Set initial memory (16MB)
+    target_link_options(${PROJECT_NAME} PRIVATE -sINITIAL_MEMORY=16777216)
+    
+    # Copy additional web files to build directory
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/web/index.html
+        ${CMAKE_BINARY_DIR}/bin/index.html
+        COPYONLY
+    )
+endif()
 
 # On Windows, hide the console window without changing entry point
 if(WIN32 AND MSVC)
